@@ -1,0 +1,8 @@
+Source: https://acpica.org/sites/acpica/files/acpica-unix2-20200110.tar.gz
+License: Dual-licensed GPLv2/BSD
+Version: 20200110
+
+Modifications:
+- Added README.fuchsia
+- Removed optional GPL license banner from sources
+- Added LICENSE containing copy of source license banner
