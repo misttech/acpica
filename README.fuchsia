@@ -6,3 +6,13 @@ Modifications:
 - Added README.fuchsia
 - Removed optional GPL license banner from sources
 - Added LICENSE containing copy of source license banner
+- Added BUILD.gn
+- Added symlink to wrap source/include as include/acpica
+- Added source/include/platform/acfuchsia.h
+- Modified source/include/platform/acenv.h to use aczircon.h/acfuchsia.h
+- Wrapped source/include/acpica/acpi.h with __BEGIN_CDECLS/__END_CDECLS
+- Modified AcpiHwLegacySleep to extract out a subfunction AcpiHwLegacySleepFinal (needed
+  for Zircon suspend-to-RAM support).
+- Fix instances of undefined behavior reported by UBSan (misaligned pointer
+  accesses, member accesses on nullptrs, and left shifting by 31 on ints)
+- Added workaround for use-after-free on NuC in AcpiNsTerminate

@@ -41,6 +41,8 @@
 #include "acpi.h"
 #include "accommon.h"
 
+#include <zircon/syscalls/system.h>
+
 #define _COMPONENT          ACPI_HARDWARE
         ACPI_MODULE_NAME    ("hwsleep")
 
@@ -65,9 +67,6 @@ AcpiHwLegacySleep (
 {
     ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
     ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
-    UINT32                  Pm1aControl;
-    UINT32                  Pm1bControl;
-    UINT32                  InValue;
     ACPI_STATUS             Status;
 
 
@@ -107,6 +106,53 @@ AcpiHwLegacySleep (
     {
         return_ACPI_STATUS (Status);
     }
+
+    /* The upstream ACPICA code expects that AcpiHwLegacySleep() is invoked with interrupts
+    /* disabled.  It requires this because the last steps of going to sleep is writing to a few
+    /* registers, flushing the caches (so we don't lose data if the caches are dropped), and then
+    /* writing to a register to enter the sleep.  If we were to take an interrupt after the cache
+    /* flush but before entering sleep, we could have inconsistent memory after waking up.*/
+
+    /* In Fuchsia, ACPICA runs in usermode and we don't expose a mechanism for it to disable
+    /* interrupts.  To ensure a consistent sleep, we split AcpiHwLegacySleep into two parts, the
+    /* part that doesn't need interrupts disabled, and then the final part (AcpiHwLegacySleepFinal)
+    /* that does.  We execute the first half in usermode, and then make a syscall into the kernel to
+    /* execute the final steps. */
+
+#if defined(__Fuchsia__) && !defined(_KERNEL)
+    extern zx_handle_t get_root_resource(void);
+
+    zx_system_powerctl_arg_t arg;
+    arg.acpi_transition_s_state.target_s_state = SleepState;
+    arg.acpi_transition_s_state.sleep_type_a = AcpiGbl_SleepTypeA;
+    arg.acpi_transition_s_state.sleep_type_b = AcpiGbl_SleepTypeB;
+    zx_status_t zx_status = zx_system_powerctl(get_root_resource(),
+                                               ZX_SYSTEM_POWERCTL_ACPI_TRANSITION_S_STATE,
+                                               &arg);
+    if (zx_status == ZX_OK) {
+        Status = AE_OK;
+    } else {
+        Status = AE_ERROR;
+    }
+#else
+    Status = AcpiHwLegacySleepFinal(SleepState, AcpiGbl_SleepTypeA, AcpiGbl_SleepTypeB);
+#endif
+    return_ACPI_STATUS (Status);
+}
+
+ACPI_STATUS
+AcpiHwLegacySleepFinal(UINT8 SleepState, UINT8 SleepTypeA, UINT8 SleepTypeB) {
+    ACPI_STATUS             Status;
+    UINT32                  Pm1aControl;
+    UINT32                  Pm1bControl;
+    UINT32                  InValue;
+    ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
+    ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
+
+    ACPI_FUNCTION_TRACE (HwLegacySleepFinal);
+
+    SleepTypeRegInfo = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE);
+    SleepEnableRegInfo = AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_ENABLE);
 
     /* Get current value of PM1A control */
 

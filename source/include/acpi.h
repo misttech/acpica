@@ -50,6 +50,8 @@
  * Note: The order of these include files is important.
  */
 #include "platform/acenv.h"     /* Environment-specific items */
+__BEGIN_CDECLS
+
 #include "actypes.h"            /* ACPICA data types and structures */
 #include "platform/acenvex.h"   /* Extra environment-specific items */
 #include "acnames.h"            /* Common ACPI names and strings */
@@ -59,5 +61,6 @@
 #include "acrestyp.h"           /* Resource Descriptor structs */
 #include "acpiosxf.h"           /* OSL interfaces (ACPICA-to-OS) */
 #include "acpixf.h"             /* ACPI core subsystem external interfaces */
+__END_CDECLS
 
 #endif /* __ACPI_H__ */
