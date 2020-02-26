@@ -108,16 +108,16 @@ AcpiHwLegacySleep (
     }
 
     /* The upstream ACPICA code expects that AcpiHwLegacySleep() is invoked with interrupts
-    /* disabled.  It requires this because the last steps of going to sleep is writing to a few
-    /* registers, flushing the caches (so we don't lose data if the caches are dropped), and then
-    /* writing to a register to enter the sleep.  If we were to take an interrupt after the cache
-    /* flush but before entering sleep, we could have inconsistent memory after waking up.*/
+     * disabled.  It requires this because the last steps of going to sleep is writing to a few
+     * registers, flushing the caches (so we don't lose data if the caches are dropped), and then
+     * writing to a register to enter the sleep.  If we were to take an interrupt after the cache
+     * flush but before entering sleep, we could have inconsistent memory after waking up.*/
 
     /* In Fuchsia, ACPICA runs in usermode and we don't expose a mechanism for it to disable
-    /* interrupts.  To ensure a consistent sleep, we split AcpiHwLegacySleep into two parts, the
-    /* part that doesn't need interrupts disabled, and then the final part (AcpiHwLegacySleepFinal)
-    /* that does.  We execute the first half in usermode, and then make a syscall into the kernel to
-    /* execute the final steps. */
+     * interrupts.  To ensure a consistent sleep, we split AcpiHwLegacySleep into two parts, the
+     * part that doesn't need interrupts disabled, and then the final part (AcpiHwLegacySleepFinal)
+     * that does.  We execute the first half in usermode, and then make a syscall into the kernel to
+     * execute the final steps. */
 
 #if defined(__Fuchsia__) && !defined(_KERNEL)
     extern zx_handle_t get_root_resource(void);
