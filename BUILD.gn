@@ -232,8 +232,8 @@ static_library("acpica") {
   deps = [
     "//zircon/public/lib/ddk",
     "//zircon/public/lib/fbl",
-    "//zircon/public/lib/pci",
     "//zircon/public/lib/zircon-internal",
+    "//zircon/system/dev/lib/pci",
   ]
   defines = [ "_ALL_SOURCE" ]
   if (acpica_debug_output) {
