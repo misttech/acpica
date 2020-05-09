@@ -230,9 +230,9 @@ static_library("acpica") {
     "source/components/utilities/utxfmutex.c",
   ]
   deps = [
+    "//src/devices/pci/lib/pci",
     "//zircon/public/lib/fbl",
     "//zircon/public/lib/zircon-internal",
-    "//zircon/system/dev/lib/pci",
     "//zircon/system/ulib/ddk",
   ]
   defines = [ "_ALL_SOURCE" ]
