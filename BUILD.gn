@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("$zx_build/public/gn/config/globals.gni")
-
 declare_args() {
   # Enable debug output in the ACPI library (used by the ACPI bus driver).
   acpica_debug_output = false
@@ -242,7 +240,5 @@ static_library("acpica") {
 
   # TODO(41663): UBSan has found an instance of undefined behavior in this target.
   # Disable UBSan for this target temporarily until it is migrated into CI/CQ.
-  if (!is_gcc) {
-    cflags += [ "-fno-sanitize=undefined" ]
-  }
+  cflags += [ "-fno-sanitize=undefined" ]
 }
