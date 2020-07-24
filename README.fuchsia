@@ -16,3 +16,5 @@ Modifications:
 - Fix instances of undefined behavior reported by UBSan (misaligned pointer
   accesses, member accesses on nullptrs, and left shifting by 31 on ints)
 - Added workaround for use-after-free on NuC in AcpiNsTerminate
+- Export the function AcpiHwSetFirmwareWakingVector, used by the Zircon kernel for
+  suspend/resume support.
