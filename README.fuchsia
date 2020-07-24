@@ -7,8 +7,10 @@ Modifications:
 - Removed optional GPL license banner from sources
 - Added LICENSE containing copy of source license banner
 - Added BUILD.gn
+- Added BUILD.zircon.gn
 - Added symlink to wrap source/include as include/acpica
 - Added source/include/platform/acfuchsia.h
+- Added source/include/platform/aczircon.h
 - Modified source/include/platform/acenv.h to use aczircon.h/acfuchsia.h
 - Wrapped source/include/acpica/acpi.h with __BEGIN_CDECLS/__END_CDECLS
 - Modified AcpiHwLegacySleep to extract out a subfunction AcpiHwLegacySleepFinal (needed

@@ -238,6 +238,9 @@
 #elif defined(__QNX__)
 #include "acqnx.h"
 
+#elif defined(LK)
+#include "aczircon.h"
+
 #elif defined(__Fuchsia__)
 #include "acfuchsia.h"
 
