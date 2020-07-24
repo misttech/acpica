@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "365d41e1_37eb421b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2020-07-24T05:01:02Z",
+      "side": 1,
+      "message": "This change is a bit of a request for comments as I accept that it is a little on the wild side. The motivation behind this (and it\u0027s accompanying https://fuchsia-review.googlesource.com/c/fuchsia/+/410158) is to not need the kernel to perform the S transition. I believe that transitioning to S5 is \u0027safe\u0027 even if interrupts are enabled, but feel free to disagree.\n\nAs mentioned in the other CL, the motivation is that with this and suspend to ram removed, we unblock ACPI work starting in https://fuchsia-review.googlesource.com/c/fuchsia/+/367513",
+      "revId": "dab695eb7c2956b0f25a59cdda27647831c8e1d9",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": false
+    }
+  ]
+}
