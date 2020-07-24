@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "e1aadc2e_b2aa6b5d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5155
+      },
+      "writtenOn": "2020-07-24T16:52:09Z",
+      "side": 1,
+      "message": "If we have any bugs tracking adding suspend-to-ram in the future, it may be useful to record both of these change IDs as a reminder so we don\u0027t need to remember all of the hoop jumping necessary to get usermode ACPICA to play nice",
+      "revId": "dab695eb7c2956b0f25a59cdda27647831c8e1d9",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c7c16b25_bf566ff7",
         "filename": "source/components/hardware/hwsleep.c",
         "patchSetId": 1
