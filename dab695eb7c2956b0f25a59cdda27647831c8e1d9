@@ -16,6 +16,29 @@
       "revId": "dab695eb7c2956b0f25a59cdda27647831c8e1d9",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c7c16b25_bf566ff7",
+        "filename": "source/components/hardware/hwsleep.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 36946
+      },
+      "writtenOn": "2020-07-24T05:20:06Z",
+      "side": 1,
+      "message": "This reversion makes me happy, thanks.",
+      "range": {
+        "startLine": 71,
+        "startChar": 4,
+        "endLine": 71,
+        "endChar": 39
+      },
+      "revId": "dab695eb7c2956b0f25a59cdda27647831c8e1d9",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": false
     }
   ]
 }
