@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f8dd4a20_078ef11c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 36946
+      },
+      "writtenOn": "2020-08-04T04:25:35Z",
+      "side": 1,
+      "message": "Tested: NUC on an x86 bring build with ASAN enabled fails to boot due to ubsan failure prior to this change, but happily boots afterwards.",
+      "revId": "53f1fa0c1db0fd16445fbb3c45b752633a3a9095",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": false
+    }
+  ]
+}
