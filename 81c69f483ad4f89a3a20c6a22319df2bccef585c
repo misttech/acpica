@@ -16,6 +16,23 @@
       "revId": "81c69f483ad4f89a3a20c6a22319df2bccef585c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "65752b82_0a0f7a0f",
+        "filename": "BUILD.zircon.gn",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2020-08-04T06:25:49Z",
+      "side": 1,
+      "message": "I don\u0027t really like that there\u0027s a lot of duplication between this and the regular BUILD file. Unifying probably makes deleting harder (which is the goal) so maybe a comment at the top explaining the temporary nature of this file? Otherwise this is some motivation for trying to get the ACPICA removal through the kernel.",
+      "revId": "81c69f483ad4f89a3a20c6a22319df2bccef585c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": true
     }
   ]
 }
