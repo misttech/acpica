@@ -50,6 +50,8 @@ static_library("acpica") {
     # TODO(41663): UBSan has found an instance of undefined behavior in this target.
     # Disable UBSan for this target temporarily until it is migrated into CI/CQ.
     "//build/config:temporarily_disable_ubsan_do_not_use",
+    # TODO(fxb/58162): delete the below and fix compiler warnings
+    "//build/config:Wno-conversion",
   ]
 
   # We need to specify -fno-strict-aliasing, since ACPICA has a habit of
