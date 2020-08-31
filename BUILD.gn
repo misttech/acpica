@@ -248,4 +248,5 @@ static_library("acpica") {
   if (platform_enable_user_pci) {
     defines += [ "ENABLE_USER_PCI" ]
   }
+  configs += [ "//build/config:Wno-conversion" ]
 }
