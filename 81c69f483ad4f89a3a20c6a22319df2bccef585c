@@ -51,6 +51,24 @@
       "revId": "81c69f483ad4f89a3a20c6a22319df2bccef585c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24d259a5_e4b82881",
+        "filename": "BUILD.zircon.gn",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 36946
+      },
+      "writtenOn": "2020-09-11T04:57:44Z",
+      "side": 1,
+      "message": "The duplication is terrible, but this CL merely moves it from:\n\n  https://source.corp.google.com/fuchsia/fuchsia-mirror/zircon/third_party/lib/acpica/BUILD.zircon.gn\n\nto here, so I don\u0027t think we are any worse off.\n\nI agree that unifying might make this code harder to delete, so am hoping to punt on it for now.\n\nAdded a comment at the top and reference to a bug.",
+      "parentUuid": "65752b82_0a0f7a0f",
+      "revId": "81c69f483ad4f89a3a20c6a22319df2bccef585c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269",
+      "unresolved": false
     }
   ]
 }
