@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "412cc685_351e75a3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5232
+      },
+      "writtenOn": "2020-12-11T18:21:15Z",
+      "side": 1,
+      "message": "I think we need adanis@ and dgreenaway@ in this. The former is in x86 board coincidentally.",
+      "revId": "dde327c9993a4da339027737bb4cf56b05c7de6c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
