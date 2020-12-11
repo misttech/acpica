@@ -33,6 +33,24 @@
       "message": "Please include this in the ",
       "revId": "79250ef510f2c36e5a7f58fe3b965ce86073188c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7bd474af_7c6a62cf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5232
+      },
+      "writtenOn": "2020-12-11T18:19:22Z",
+      "side": 1,
+      "message": "Please ignore, stale comment when I added the reviewer.",
+      "parentUuid": "60d4c710_095b2021",
+      "revId": "79250ef510f2c36e5a7f58fe3b965ce86073188c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
