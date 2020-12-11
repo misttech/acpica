@@ -16,6 +16,24 @@
       "message": "I think we need adanis@ and dgreenaway@ in this. The former is in x86 board coincidentally.",
       "revId": "dde327c9993a4da339027737bb4cf56b05c7de6c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2efbc54f_d5283c31",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5235
+      },
+      "writtenOn": "2020-12-11T20:33:21Z",
+      "side": 1,
+      "message": "As the x86 board driver is the only user of the library, I\u0027d like to keep the ownership tied as well.  If there are people who should be owners of this library, IMHO they should be owners for the board driver as well.",
+      "parentUuid": "412cc685_351e75a3",
+      "revId": "dde327c9993a4da339027737bb4cf56b05c7de6c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
