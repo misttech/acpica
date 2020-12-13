@@ -51,6 +51,23 @@
       "parentUuid": "60d4c710_095b2021",
       "revId": "79250ef510f2c36e5a7f58fe3b965ce86073188c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "70fc5fc8_c04b880b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2020-12-13T22:02:22Z",
+      "side": 1,
+      "message": "I see no problem with this change, but I\u0027d like to wait for the related change to get approved before merging this.",
+      "revId": "79250ef510f2c36e5a7f58fe3b965ce86073188c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
