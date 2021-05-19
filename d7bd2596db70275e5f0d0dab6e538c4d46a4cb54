@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7d6963f0_a5e9e2cc",
+        "filename": "OWNERS",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 24521
+      },
+      "writtenOn": "2021-05-19T18:30:49Z",
+      "side": 0,
+      "message": "Unfortunately cross-repo includes don\u0027t work. Gerrit doesn\u0027t know about \"the flower\", so the Gerrit OWNERS plugin can only resolve includes in the same repo. This include would essentially resolve to the non-existent path //third_party/acpica/src/devices/board/drivers/x86/OWNERS, instead of to the intended path //src/devices/board/drivers/x86/OWNERS.\n\nThe next best thing, as much as it pains me, is to copy the contents of src/devices/board/drivers/x86/OWNERS into this file.",
+      "revId": "d7bd2596db70275e5f0d0dab6e538c4d46a4cb54",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
