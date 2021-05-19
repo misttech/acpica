@@ -1,3 +1,6 @@
 include /src/devices/board/drivers/x86/OWNERS
 
+adanis@google.com	
+cja@google.com
+
 # COMPONENT: Zircon>drivers
