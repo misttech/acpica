@@ -34,6 +34,24 @@
       "parentUuid": "c5504356_ad6e22d9",
       "revId": "cc8a6de378b5b7c669f884402faecb8cfe0f9892",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bafa8688_d22121e9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5232
+      },
+      "writtenOn": "2021-05-19T21:57:48Z",
+      "side": 1,
+      "message": "We typically require tagged [] commits, and git uses the first line as the summary so right now it would look like\n\n0123456323 1 day Basing off usage from acpica build as per http://go/fuchsia-third-party.... etc\n\nPreferably something like:\n[owners] Add OWNERs file\n\nUsing the x64 board OWNERs file as a base.",
+      "parentUuid": "5ef4d4c3_69515f06",
+      "revId": "cc8a6de378b5b7c669f884402faecb8cfe0f9892",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
