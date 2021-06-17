@@ -3,16 +3,13 @@
 # found in the LICENSE file.
 
 import("//src/devices/bus/drivers/pci/pci.gni")
-
-declare_args() {
-  # Enable debug output in the ACPI library (used by the ACPI bus driver).
-  acpica_debug_output = false
-}
+import("//zircon/system/ulib/acpica/acpica.gni")
 
 group("headers") {
   public_configs = [
     ":headers.config",
     ":disable_warnings",
+    "//zircon/system/ulib/acpica:acpica-config",
   ]
 }
 
@@ -64,7 +61,6 @@ static_library("acpica") {
   cflags = [ "-fno-strict-aliasing" ]
 
   sources = [
-    "//zircon/system/ulib/acpica/osfuchsia.cc",
     "source/common/ahids.c",
     "source/common/ahpredef.c",
     "source/common/ahtable.c",
@@ -239,11 +235,7 @@ static_library("acpica") {
     "source/components/utilities/utxfmutex.c",
   ]
   deps = [
-    "//src/devices/pci/lib/pci",
-    "//src/lib/ddk",
-    "//zircon/system/ulib/bitmap",
-    "//zircon/system/ulib/fbl",
-    "//zircon/system/ulib/zircon-internal",
+    "//zircon/system/ulib/acpica:acpica-fuchsia",
   ]
   defines = [ "_ALL_SOURCE" ]
   if (acpica_debug_output) {
