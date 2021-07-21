@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "be76e0ca_e04e494a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5050
+      },
+      "writtenOn": "2021-07-21T21:49:11Z",
+      "side": 1,
+      "message": "Could we just disable this warning for this target?",
+      "revId": "8fd0daae6aa015ba154aea8337c02cbbb91c5eb5",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
