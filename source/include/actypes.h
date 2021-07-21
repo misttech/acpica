@@ -546,7 +546,7 @@ typedef UINT64                          ACPI_INTEGER;
 /* Pointer/Integer type conversions */
 
 #define ACPI_TO_POINTER(i)              ACPI_CAST_PTR (void, (ACPI_SIZE) (i))
-#define ACPI_TO_INTEGER(p)              ACPI_PTR_DIFF (p, (void *) 0)
+#define ACPI_TO_INTEGER(p)              ((uintptr_t)p)
 // Use offsetof() to avoid taking the offset of a nullptr, which is undefined
 // behavior.
 #define ACPI_OFFSET(d, f)               offsetof(d, f)
