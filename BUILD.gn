@@ -32,6 +32,7 @@ config("disable_warnings") {
     "-Wno-implicit-fallthrough",
     "-Wno-incompatible-pointer-types-discards-qualifiers",
     "-Wno-null-pointer-arithmetic",
+    "-Wno-null-pointer-subtraction",
   ]
 }
 
