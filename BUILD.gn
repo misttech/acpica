@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//src/devices/bus/drivers/pci/pci.gni")
 import("//zircon/system/ulib/acpica/acpica.gni")
 
 group("headers") {
@@ -241,8 +240,5 @@ static_library("acpica") {
   defines = [ "_ALL_SOURCE" ]
   if (acpica_debug_output) {
     defines += [ "ACPI_DEBUG_OUTPUT" ]
-  }
-  if (platform_enable_user_pci) {
-    defines += [ "ENABLE_USER_PCI" ]
   }
 }
