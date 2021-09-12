@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1ac5d3ad_18ff541c",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2021-09-12T22:42:29Z",
+      "side": 1,
+      "message": "You also need to modify AcpiHwExtendedSleep. Or more generally, every location where AcpiOsEnterSleep is called needs to be modified now that AcpiOsEnterSleep can return success for suspend-to-ram.",
+      "range": {
+        "startLine": 7,
+        "startChar": 16,
+        "endLine": 7,
+        "endChar": 32
+      },
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4956fa7_6a320f6f",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2021-09-12T22:42:29Z",
+      "side": 1,
+      "message": "There is no AcpiHwLegacySleepFinal anymore since the ACPICA library is not shared with the kernel and so this isn\u0027t actually creating a code split, although the actual work of performing sleep is still notionally split.\n\nI would update this, and the comment in the code, to not talk about the nonexistent AcpiHwLegacySleepFinal, and just talk about calling the kernel to do the rest of the work.",
+      "range": {
+        "startLine": 12,
+        "startChar": 35,
+        "endLine": 12,
+        "endChar": 57
+      },
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b2e663f4_6005e540",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 31420
+      },
+      "writtenOn": "2021-09-12T22:42:29Z",
+      "side": 1,
+      "message": "Additionally you should add a line to the README.fuchsia noting this modification.\n\nPerhaps you know this, but it\u0027s my first time reviewing a CL by you to this repo so I\u0027m going to re-state it. No CQ checks are performed on CL merges here, meaning you can trivially break ToT, so you need to make sure you do all testing yourself prior to merging.",
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
