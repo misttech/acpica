@@ -237,6 +237,7 @@ static_library("acpica") {
   ]
   deps = [
     "//zircon/system/ulib/acpica:acpica-fuchsia",
+    "//zircon/system/ulib/backtrace-request",
   ]
   defines = [ "_ALL_SOURCE" ]
   if (acpica_debug_output) {

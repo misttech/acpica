@@ -41,6 +41,7 @@
 #include "accommon.h"
 #include "acevents.h"
 #include "acinterp.h"
+#include "lib/backtrace-request/backtrace-request.h"
 
 #define _COMPONENT          ACPI_EVENTS
         ACPI_MODULE_NAME    ("evglock")
@@ -233,6 +234,8 @@ AcpiEvAcquireGlobalLock (
 
     ACPI_FUNCTION_TRACE (EvAcquireGlobalLock);
 
+    // TODO(fxbug.dev/87281): remove this once cause of recursive locks has been found.
+    backtrace_request();
 
     /*
      * Only one thread can acquire the GL at a time, the GlobalLockMutex
