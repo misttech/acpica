@@ -24,6 +24,30 @@
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cdbee93f_bbe134af",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 48129
+      },
+      "writtenOn": "2021-11-23T00:14:06Z",
+      "side": 1,
+      "message": "I created a bug (https://fxbug.dev/89248) since currently acpi_lite is not able to find tables with optional entries and AcpiHwExtendedSleep needs the optional entries in the FADT.\n\nI also changed AcpiOsEnterSleep to only return success for poweroff. See https://fxrev.dev/605221",
+      "parentUuid": "1ac5d3ad_18ff541c",
+      "range": {
+        "startLine": 7,
+        "startChar": 16,
+        "endLine": 7,
+        "endChar": 32
+      },
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f4956fa7_6a320f6f",
@@ -49,6 +73,30 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "a44f7c10_d7aa083b",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 48129
+      },
+      "writtenOn": "2021-11-23T00:14:06Z",
+      "side": 1,
+      "message": "Updated the commit message and the comment. Let me know if it\u0027s not clear or there\u0027s something missing.",
+      "parentUuid": "f4956fa7_6a320f6f",
+      "range": {
+        "startLine": 12,
+        "startChar": 35,
+        "endLine": 12,
+        "endChar": 57
+      },
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "b2e663f4_6005e540",
         "filename": "/PATCHSET_LEVEL",
         "patchSetId": 1
@@ -60,6 +108,24 @@
       "writtenOn": "2021-09-12T22:42:29Z",
       "side": 1,
       "message": "Additionally you should add a line to the README.fuchsia noting this modification.\n\nPerhaps you know this, but it\u0027s my first time reviewing a CL by you to this repo so I\u0027m going to re-state it. No CQ checks are performed on CL merges here, meaning you can trivially break ToT, so you need to make sure you do all testing yourself prior to merging.",
+      "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4e65c261_957440f2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 48129
+      },
+      "writtenOn": "2021-11-23T00:14:06Z",
+      "side": 1,
+      "message": "Updated README.fuchsia",
+      "parentUuid": "b2e663f4_6005e540",
       "revId": "7a2e437bf1209fba0c52ce5be929cf11c45a6a45",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
