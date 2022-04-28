@@ -253,4 +253,9 @@ static_library("acpica") {
   if (acpica_debug_output) {
     defines += [ "ACPI_DEBUG_OUTPUT" ]
   }
+
+  if (is_host) {
+    # Use built in cache implementation on host.
+    defines += ["ACPI_USE_LOCAL_CACHE"]
+  }
 }
