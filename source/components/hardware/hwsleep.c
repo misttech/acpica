@@ -41,7 +41,9 @@
 #include "acpi.h"
 #include "accommon.h"
 
+#ifdef __Fuchsia__
 #include <zircon/syscalls/system.h>
+#endif
 
 #define _COMPONENT          ACPI_HARDWARE
         ACPI_MODULE_NAME    ("hwsleep")
