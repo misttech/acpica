@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "148195ae_baeb37dd",
+        "filename": "BUILD.gn",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 9550
+      },
+      "writtenOn": "2022-05-01T23:48:06Z",
+      "side": 1,
+      "message": "Which C++ headers do you mean here?",
+      "range": {
+        "startLine": 42,
+        "startChar": 62,
+        "endLine": 42,
+        "endChar": 85
+      },
+      "revId": "b802a81891628141ab135d51df3eb094a90c893b",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
