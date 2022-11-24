@@ -48,7 +48,7 @@ static_library("acpica") {
   public_deps = [ ":headers" ]
 
   # Local sources use #include "acpi.h", not #include <acpica/acpi.h>.
-  include_dirs = [ "source/include" ]
+  include_dirs = [ "source/include", "source/compiler" ]
 
   configs += [
     ":disable_warnings",
@@ -212,6 +212,7 @@ static_library("acpica") {
     "source/components/utilities/utascii.c",
     "source/components/utilities/utbuffer.c",
     "source/components/utilities/utcache.c",
+    "source/components/utilities/utcksum.c",
     "source/components/utilities/utclib.c",
     "source/components/utilities/utcopy.c",
     "source/components/utilities/utdebug.c",
