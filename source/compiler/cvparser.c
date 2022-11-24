@@ -5,6 +5,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -162,6 +163,177 @@ CvInitFileTree (
     /* Set the root file to the current open file */
 
     AcpiGbl_FileTreeRoot->File = AcpiGbl_OutputFile;
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "acparser.h"
+#include "acdispat.h"
+#include "amlcode.h"
+#include "acinterp.h"
+#include "acdisasm.h"
+#include "acconvert.h"
+
+
+/* local prototypes */
+
+static BOOLEAN
+CvCommentExists (
+    UINT8                   *Address);
+
+static BOOLEAN
+CvIsFilename (
+    char                   *Filename);
+
+static ACPI_FILE_NODE*
+CvFileAddressLookup(
+    char                    *Address,
+    ACPI_FILE_NODE          *Head);
+
+static void
+CvAddToFileTree (
+    char                    *Filename,
+    char                    *PreviousFilename);
+
+static void
+CvSetFileParent (
+    char                    *ChildFile,
+    char                    *ParentFile);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    CvIsFilename
+ *
+ * PARAMETERS:  filename - input filename
+ *
+ * RETURN:      BOOLEAN - TRUE if all characters are between 0x20 and 0x7f
+ *
+ * DESCRIPTION: Take a given char * and see if it contains all printable
+ *              characters. If all characters have hexvalues 20-7f and ends with
+ *              .dsl, we will assume that it is a proper filename.
+ *
+ ******************************************************************************/
+
+static BOOLEAN
+CvIsFilename (
+    char                    *Filename)
+{
+    UINT64                  Length = strlen(Filename);
+    char                    *FileExt = Filename + Length - 4;
+    UINT64                  i;
+
+
+    if ((Length > 4) && AcpiUtStricmp (FileExt, ".dsl"))
+    {
+        return (FALSE);
+    }
+
+    for(i = 0; i<Length; ++i)
+    {
+        if (!isprint ((int) Filename[i]))
+        {
+            return (FALSE);
+        }
+    }
+
+    return (TRUE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    CvInitFileTree
+ *
+ * PARAMETERS:  Table      - input table
+ *              RootFile   - Output file that defines the DefinitionBlock
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Initialize the file dependency tree by scanning the AML.
+ *              This is referred as ASL_CV_INIT_FILETREE.
+ *
+ ******************************************************************************/
+
+void
+CvInitFileTree (
+    ACPI_TABLE_HEADER       *Table,
+    FILE                    *RootFile)
+{
+    UINT8                   *TreeAml;
+    UINT8                   *FileEnd;
+    char                    *Filename = NULL;
+    char                    *PreviousFilename = NULL;
+    char                    *ParentFilename = NULL;
+    char                    *ChildFilename = NULL;
+    UINT8                   *AmlStart;
+    UINT32                  AmlLength;
+
+
+    if (!AcpiGbl_CaptureComments)
+    {
+        return;
+    }
+
+
+    AmlLength = Table->Length - sizeof (ACPI_TABLE_HEADER);
+    AmlStart = ((UINT8 *) Table + sizeof (ACPI_TABLE_HEADER));
+
+    CvDbgPrint ("AmlLength: %x\n", AmlLength);
+    CvDbgPrint ("AmlStart:  %p\n", AmlStart);
+    CvDbgPrint ("AmlEnd:    %p\n", AmlStart+AmlLength);
+
+    AcpiGbl_FileTreeRoot = AcpiOsAcquireObject (AcpiGbl_FileCache);
+
+    AcpiGbl_FileTreeRoot->FileStart = (char *)(AmlStart);
+    AcpiGbl_FileTreeRoot->FileEnd = (char *)(AmlStart + Table->Length);
+    AcpiGbl_FileTreeRoot->Next = NULL;
+    AcpiGbl_FileTreeRoot->Parent = NULL;
+    AcpiGbl_FileTreeRoot->Filename = (char *)(AmlStart+2);
+
+    /* Set the root file to the current open file */
+
+    AcpiGbl_FileTreeRoot->File = RootFile;
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
     /*
      * Set this to true because we don't need to output

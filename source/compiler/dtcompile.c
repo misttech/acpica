@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -337,6 +338,391 @@ DtCompileDataTable (
 
         DtSetTableLength ();
         return (Status);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#define _DECLARE_DT_GLOBALS
+
+#include "aslcompiler.h"
+
+#define _COMPONENT          DT_COMPILER
+        ACPI_MODULE_NAME    ("dtcompile")
+
+static char                 VersionString[9];
+
+
+/* Local prototypes */
+
+void
+DtInitialize (
+    void);
+
+static ACPI_STATUS
+DtCompileDataTable (
+    DT_FIELD                **Field);
+
+static void
+DtInsertCompilerIds (
+    DT_FIELD                *FieldList);
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    DtDoCompile
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Main entry point for the data table compiler.
+ *
+ * Note: Assumes AslGbl_Files[ASL_FILE_INPUT] is initialized and the file is
+ *          open at seek offset zero.
+ *
+ *****************************************************************************/
+
+ACPI_STATUS
+DtDoCompile (
+    void)
+{
+    ACPI_STATUS             Status;
+    UINT8                   Event;
+    DT_FIELD                *FieldList;
+    ASL_GLOBAL_FILE_NODE    *FileNode;
+
+
+    /* Initialize globals */
+
+    DtInitialize ();
+
+    /* Preprocessor */
+
+    if (AslGbl_PreprocessFlag)
+    {
+        /* Preprocessor */
+
+        Event = UtBeginEvent ("Preprocess input file");
+        PrDoPreprocess ();
+        UtEndEvent (Event);
+
+        if (AslGbl_PreprocessOnly)
+        {
+            return (AE_OK);
+        }
+    }
+
+    /* Compile the parse tree */
+
+    if (AslGbl_DtLexBisonPrototype)
+    {
+        Event = UtBeginEvent ("Parse data table in prototype mode");
+
+        DtCompilerInitLexer (AslGbl_Files[ASL_FILE_INPUT].Handle);
+        DtCompilerParserparse ();
+        FieldList = AslGbl_FieldList;
+        DtCompilerTerminateLexer ();
+
+        UtEndEvent (Event);
+    }
+    else
+    {
+        /*
+         * Scan the input file (file is already open) and
+         * build the parse tree
+         */
+        Event = UtBeginEvent ("Scan and parse input file");
+        FieldList = DtScanFile (AslGbl_Files[ASL_FILE_INPUT].Handle);
+        UtEndEvent (Event);
+    }
+
+    /* Did the parse tree get successfully constructed? */
+
+    if (!FieldList)
+    {
+        /* TBD: temporary error message. Msgs should come from function above */
+
+        DtError (ASL_ERROR, ASL_MSG_SYNTAX, NULL,
+            "Input file does not appear to be an ASL or data table source file");
+
+        return (AE_ERROR);
+    }
+
+    Event = UtBeginEvent ("Compile parse tree");
+
+    Status = DtCompileDataTable (&FieldList);
+    UtEndEvent (Event);
+
+    FileNode = FlGetCurrentFileNode ();
+
+    FileNode->TotalLineCount = AslGbl_CurrentLineNumber;
+    FileNode->OriginalInputFileSize = AslGbl_InputByteCount;
+    DbgPrint (ASL_PARSE_OUTPUT, "Line count: %u input file size: %u\n",
+            FileNode->TotalLineCount, FileNode->OriginalInputFileSize);
+
+    if (ACPI_FAILURE (Status))
+    {
+        FileNode->ParserErrorDetected = TRUE;
+
+        /* TBD: temporary error message. Msgs should come from function above */
+
+        DtError (ASL_ERROR, ASL_MSG_SYNTAX, NULL,
+            "Could not compile input file");
+
+        return (Status);
+    }
+
+    /* Create/open the binary output file */
+
+    AslGbl_Files[ASL_FILE_AML_OUTPUT].Filename = NULL;
+    Status = FlOpenAmlOutputFile (AslGbl_OutputFilenamePrefix);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    /* Write the binary, then the optional hex file */
+
+    DtOutputBinary (AslGbl_RootTable);
+    HxDoHexOutput ();
+    DtWriteTableToListing ();
+
+    /* Save the compile time statistics to the current file node */
+
+    FileNode->TotalFields = AslGbl_InputFieldCount;
+    FileNode->OutputByteLength = AslGbl_TableLength;
+
+    return (Status);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    DtInitialize
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Initialize data table compiler globals. Enables multiple
+ *              compiles per invocation.
+ *
+ *****************************************************************************/
+
+void
+DtInitialize (
+    void)
+{
+
+
+    AcpiUtSetIntegerWidth (2); /* Set width to 64 bits */
+
+    AslGbl_FieldList = NULL;
+    AslGbl_RootTable = NULL;
+    AslGbl_SubtableStack = NULL;
+
+    sprintf (VersionString, "%X", (UINT32) ACPI_CA_VERSION);
+    return;
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    DtInsertCompilerIds
+ *
+ * PARAMETERS:  FieldList           - Current field list pointer
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Insert the IDs (Name, Version) of the current compiler into
+ *              the original ACPI table header.
+ *
+ *****************************************************************************/
+
+static void
+DtInsertCompilerIds (
+    DT_FIELD                *FieldList)
+{
+    DT_FIELD                *Next;
+    UINT32                  i;
+
+
+    /*
+     * Don't insert current compiler ID if requested. Used for compiler
+     * debug/validation only.
+     */
+    if (AslGbl_UseOriginalCompilerId)
+    {
+        return;
+    }
+
+    /* Walk to the Compiler fields at the end of the header */
+
+    Next = FieldList;
+    for (i = 0; i < 7; i++)
+    {
+        Next = Next->Next;
+    }
+
+    Next->Value = ASL_CREATOR_ID;
+    Next->Flags = DT_FIELD_NOT_ALLOCATED;
+
+    Next = Next->Next;
+    Next->Value = VersionString;
+    Next->Flags = DT_FIELD_NOT_ALLOCATED;
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    DtCompileDataTable
+ *
+ * PARAMETERS:  FieldList           - Current field list pointer
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Entry point to compile one data table
+ *
+ *****************************************************************************/
+
+static ACPI_STATUS
+DtCompileDataTable (
+    DT_FIELD                **FieldList)
+{
+    const ACPI_DMTABLE_DATA *TableData;
+    DT_SUBTABLE             *Subtable;
+    char                    *Signature;
+    ACPI_TABLE_HEADER       *AcpiTableHeader;
+    ACPI_STATUS             Status;
+    DT_FIELD                *RootField = *FieldList;
+
+
+    /* Verify that we at least have a table signature and save it */
+
+    Signature = DtGetFieldValue (*FieldList);
+    if (!Signature)
+    {
+        sprintf (AslGbl_MsgBuffer, "Expected \"%s\"", "Signature");
+        DtNameError (ASL_ERROR, ASL_MSG_INVALID_FIELD_NAME,
+            *FieldList, AslGbl_MsgBuffer);
+        return (AE_ERROR);
+    }
+
+    AslGbl_Signature = UtLocalCacheCalloc (strlen (Signature) + 1);
+    strcpy (AslGbl_Signature, Signature);
+
+    /*
+     * Handle tables that don't use the common ACPI table header structure.
+     * Currently, these are the FACS and RSDP. Also check for an OEMx table,
+     * these tables have user-defined contents.
+     */
+    if (ACPI_COMPARE_NAMESEG (Signature, ACPI_SIG_FACS))
+    {
+        Status = DtCompileFacs (FieldList);
+        if (ACPI_FAILURE (Status))
+        {
+            return (Status);
+        }
+
+        DtSetTableLength ();
+        return (Status);
+    }
+    else if (ACPI_VALIDATE_RSDP_SIG (Signature))
+    {
+        Status = DtCompileRsdp (FieldList);
+        return (Status);
+    }
+    else if (ACPI_COMPARE_NAMESEG (Signature, ACPI_SIG_S3PT))
+    {
+        Status = DtCompileS3pt (FieldList);
+        if (ACPI_FAILURE (Status))
+        {
+            return (Status);
+        }
+
+        DtSetTableLength ();
+        return (Status);
+    }
+
+    /*
+     * If the first field is named "CDAT Table Length" (not "Signature"),
+     * assume that we have a CDAT table (whose table header does not have
+     * a signature). Instead, the TableLength field is where the
+     * signature would (normally) be.
+     */
+    else if (!strcmp ((*FieldList)->Name, "CDAT Table Length"))
+    {
+        /* No longer true: (However, use this technique in the disassembler)
+         * We are assuming that there
+         * should be at least one non-ASCII byte in the 4-character
+         * Signature field, (At least the high-order byte should be zero).
+         */
+        Status = DtCompileTable (FieldList, AcpiDmTableInfoCdatTableHdr,
+            &AslGbl_RootTable);
+        if (ACPI_FAILURE (Status))
+        {
+            return (Status);
+        }
+
+        /* Compile the CDAT */
+
+        DtPushSubtable (AslGbl_RootTable);
+        Status = DtCompileCdat ((void **) FieldList);
+        if (ACPI_FAILURE (Status))
+        {
+            return (Status);
+        }
+
+        /*
+         * Set the overall table length and the table checksum.
+         * The entire compiled table (including the CDAT table header with
+         * the table length and checksum) is in AslGbl_RootTable->Buffer.
+         */
+        DtSetTableLength ();
+        DtSetTableChecksum (&ACPI_CAST_PTR (ACPI_TABLE_CDAT, AslGbl_RootTable->Buffer)->Checksum);
+
+        DtDumpFieldList (RootField);
+        DtDumpSubtableList ();
+        return (AE_OK);
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     }
 
     /*

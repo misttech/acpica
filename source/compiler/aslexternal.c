@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -86,6 +87,148 @@ ExDoExternal (
     ArgCountOp->Asl.AmlOpcode = AML_RAW_DATA_BYTE;
     ArgCountOp->Asl.ParseOpcode = PARSEOP_BYTECONST;
     ArgCountOp->Asl.Value.Integer = 0;
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "aslcompiler.y.h"
+#include "acparser.h"
+#include "amlcode.h"
+#include "acnamesp.h"
+
+
+#define _COMPONENT          ACPI_COMPILER
+        ACPI_MODULE_NAME    ("aslexternal")
+
+
+/* Local prototypes */
+
+static void
+ExInsertArgCount (
+    ACPI_PARSE_OBJECT       *Op);
+
+static void
+ExMoveExternals (
+    ACPI_PARSE_OBJECT       *DefinitionBlockOp);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    ExDoExternal
+ *
+ * PARAMETERS:  Op                  - Current Parse node
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Add an External() definition to the global list. This list
+ *              is used to generate External opcodes.
+ *
+ ******************************************************************************/
+
+void
+ExDoExternal (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT       *ListOp;
+    ACPI_PARSE_OBJECT       *Prev;
+    ACPI_PARSE_OBJECT       *Next;
+    ACPI_PARSE_OBJECT       *ArgCountOp;
+    ACPI_PARSE_OBJECT       *TypeOp;
+    ACPI_PARSE_OBJECT       *ExternTypeOp = Op->Asl.Child->Asl.Next;
+    UINT32                  ExternType;
+    UINT8                   ParamCount = ASL_EXTERNAL_METHOD_UNKNOWN_PARAMS;
+    UINT32                  ParamTypes[ACPI_METHOD_NUM_ARGS];
+
+
+    ExternType = AnMapObjTypeToBtype (ExternTypeOp);
+    if (ExternType != ACPI_BTYPE_METHOD)
+    {
+        /*
+         * If this is not a method, it has zero parameters this local variable
+         * is used only for methods
+         */
+        ParamCount = 0;
+    }
+
+    /*
+     * The parser allows optional parameter return types regardless of the
+     * type. Check object type keyword emit error if optional parameter/return
+     * types exist.
+     *
+     * Check the parameter return type
+     */
+    TypeOp = ExternTypeOp->Asl.Next;
+    if (TypeOp->Asl.Child)
+    {
+        /* Ignore the return type for now. */
+
+        (void) MtProcessTypeOp (TypeOp->Asl.Child);
+        if (ExternType != ACPI_BTYPE_METHOD)
+        {
+            sprintf (AslGbl_MsgBuffer, "Found type [%s]", AcpiUtGetTypeName(ExternType));
+            AslError (ASL_ERROR, ASL_MSG_EXTERN_INVALID_RET_TYPE, TypeOp,
+                AslGbl_MsgBuffer);
+        }
+    }
+
+    /* Check the parameter types */
+
+    TypeOp = TypeOp->Asl.Next;
+    if (TypeOp->Asl.Child)
+    {
+        ParamCount = MtProcessParameterTypeList (TypeOp->Asl.Child, ParamTypes);
+        if (ExternType != ACPI_BTYPE_METHOD)
+        {
+            sprintf (AslGbl_MsgBuffer, "Found type [%s]", AcpiUtGetTypeName(ExternType));
+            AslError (ASL_ERROR, ASL_MSG_EXTERN_INVALID_PARAM_TYPE, TypeOp,
+                AslGbl_MsgBuffer);
+        }
+    }
+
+    ArgCountOp = Op->Asl.Child->Asl.Next->Asl.Next;
+    ArgCountOp->Asl.AmlOpcode = AML_RAW_DATA_BYTE;
+    ArgCountOp->Asl.ParseOpcode = PARSEOP_BYTECONST;
+    ArgCountOp->Asl.Value.Integer = ParamCount;
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     UtSetParseOpName (ArgCountOp);
 
     /* Create new list node of arbitrary type */

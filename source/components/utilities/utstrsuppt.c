@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -211,6 +212,241 @@ AcpiUtConvertHexString (
 
         if (!isxdigit (*String))
         {
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utstrsuppt")
+
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiUtInsertDigit (
+    UINT64                  *AccumulatedValue,
+    UINT32                  Base,
+    int                     AsciiDigit);
+
+static ACPI_STATUS
+AcpiUtStrtoulMultiply64 (
+    UINT64                  Multiplicand,
+    UINT32                  Base,
+    UINT64                  *OutProduct);
+
+static ACPI_STATUS
+AcpiUtStrtoulAdd64 (
+    UINT64                  Addend1,
+    UINT32                  Digit,
+    UINT64                  *OutSum);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtConvertOctalString
+ *
+ * PARAMETERS:  String                  - Null terminated input string
+ *              ReturnValuePtr          - Where the converted value is returned
+ *
+ * RETURN:      Status and 64-bit converted integer
+ *
+ * DESCRIPTION: Performs a base 8 conversion of the input string to an
+ *              integer value, either 32 or 64 bits.
+ *
+ * NOTE:        Maximum 64-bit unsigned octal value is 01777777777777777777777
+ *              Maximum 32-bit unsigned octal value is 037777777777
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtConvertOctalString (
+    char                    *String,
+    UINT64                  *ReturnValuePtr)
+{
+    UINT64                  AccumulatedValue = 0;
+    ACPI_STATUS             Status = AE_OK;
+
+
+    /* Convert each ASCII byte in the input string */
+
+    while (*String)
+    {
+        /*
+         * Character must be ASCII 0-7, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
+        if (!(ACPI_IS_OCTAL_DIGIT (*String)))
+        {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_OCTAL_CONSTANT;
+#endif
+            break;
+        }
+
+        /* Convert and insert this octal digit into the accumulator */
+
+        Status = AcpiUtInsertDigit (&AccumulatedValue, 8, *String);
+        if (ACPI_FAILURE (Status))
+        {
+            Status = AE_OCTAL_OVERFLOW;
+            break;
+        }
+
+        String++;
+    }
+
+    /* Always return the value that has been accumulated */
+
+    *ReturnValuePtr = AccumulatedValue;
+    return (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtConvertDecimalString
+ *
+ * PARAMETERS:  String                  - Null terminated input string
+ *              ReturnValuePtr          - Where the converted value is returned
+ *
+ * RETURN:      Status and 64-bit converted integer
+ *
+ * DESCRIPTION: Performs a base 10 conversion of the input string to an
+ *              integer value, either 32 or 64 bits.
+ *
+ * NOTE:        Maximum 64-bit unsigned decimal value is 18446744073709551615
+ *              Maximum 32-bit unsigned decimal value is 4294967295
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtConvertDecimalString (
+    char                    *String,
+    UINT64                  *ReturnValuePtr)
+{
+    UINT64                  AccumulatedValue = 0;
+    ACPI_STATUS             Status = AE_OK;
+
+
+    /* Convert each ASCII byte in the input string */
+
+    while (*String)
+    {
+        /*
+         * Character must be ASCII 0-9, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
+        if (!isdigit ((int) *String))
+        {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_DECIMAL_CONSTANT;
+#endif
+           break;
+        }
+
+        /* Convert and insert this decimal digit into the accumulator */
+
+        Status = AcpiUtInsertDigit (&AccumulatedValue, 10, *String);
+        if (ACPI_FAILURE (Status))
+        {
+            Status = AE_DECIMAL_OVERFLOW;
+            break;
+        }
+
+        String++;
+    }
+
+    /* Always return the value that has been accumulated */
+
+    *ReturnValuePtr = AccumulatedValue;
+    return (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtConvertHexString
+ *
+ * PARAMETERS:  String                  - Null terminated input string
+ *              ReturnValuePtr          - Where the converted value is returned
+ *
+ * RETURN:      Status and 64-bit converted integer
+ *
+ * DESCRIPTION: Performs a base 16 conversion of the input string to an
+ *              integer value, either 32 or 64 bits.
+ *
+ * NOTE:        Maximum 64-bit unsigned hex value is 0xFFFFFFFFFFFFFFFF
+ *              Maximum 32-bit unsigned hex value is 0xFFFFFFFF
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtConvertHexString (
+    char                    *String,
+    UINT64                  *ReturnValuePtr)
+{
+    UINT64                  AccumulatedValue = 0;
+    ACPI_STATUS             Status = AE_OK;
+
+
+    /* Convert each ASCII byte in the input string */
+
+    while (*String)
+    {
+        /*
+         * Character must be ASCII A-F, a-f, or 0-9, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
+        if (!isxdigit ((int) *String))
+        {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_HEX_CONSTANT;
+#endif
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
             break;
         }
 

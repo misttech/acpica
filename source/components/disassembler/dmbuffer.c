@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -570,6 +571,603 @@ AcpiDmIsPldBuffer (
      */
     SizeOp = Op->Common.Value.Arg;
     if (SizeOp->Common.AmlOpcode != AML_BYTE_OP)
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acutils.h"
+#include "acdisasm.h"
+#include "acparser.h"
+#include "amlcode.h"
+#include "acinterp.h"
+
+
+#define _COMPONENT          ACPI_CA_DEBUGGER
+        ACPI_MODULE_NAME    ("dmbuffer")
+
+/* Local prototypes */
+
+static void
+AcpiDmUuid (
+    ACPI_PARSE_OBJECT       *Op);
+
+static void
+AcpiDmUnicode (
+    ACPI_PARSE_OBJECT       *Op);
+
+static void
+AcpiDmGetHardwareIdType (
+    ACPI_PARSE_OBJECT       *Op);
+
+static void
+AcpiDmPldBuffer (
+    UINT32                  Level,
+    UINT8                   *ByteData,
+    UINT32                  ByteCount);
+
+static const char *
+AcpiDmFindNameByIndex (
+    UINT64                  Index,
+    const char              **List);
+
+
+#define ACPI_BUFFER_BYTES_PER_LINE      8
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmDisasmByteList
+ *
+ * PARAMETERS:  Level               - Current source code indentation level
+ *              ByteData            - Pointer to the byte list
+ *              ByteCount           - Length of the byte list
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Dump an AML "ByteList" in Hex format. 8 bytes per line, prefixed
+ *              with the hex buffer offset.
+ *
+ ******************************************************************************/
+
+void
+AcpiDmDisasmByteList (
+    UINT32                  Level,
+    UINT8                   *ByteData,
+    UINT32                  ByteCount)
+{
+    UINT32                  i;
+    UINT32                  j;
+    UINT32                  CurrentIndex;
+    UINT8                   BufChar;
+
+
+    if (!ByteCount)
+    {
+        return;
+    }
+
+    for (i = 0; i < ByteCount; i += ACPI_BUFFER_BYTES_PER_LINE)
+    {
+        /* Line indent and offset prefix for each new line */
+
+        AcpiDmIndent (Level);
+        if (ByteCount > ACPI_BUFFER_BYTES_PER_LINE)
+        {
+            AcpiOsPrintf ("/* %04X */ ", i);
+        }
+
+        /* Dump the actual hex values */
+
+        for (j = 0; j < ACPI_BUFFER_BYTES_PER_LINE; j++)
+        {
+            CurrentIndex = i + j;
+            if (CurrentIndex >= ByteCount)
+            {
+                /* Dump fill spaces */
+
+                AcpiOsPrintf ("      ");
+                continue;
+            }
+
+            AcpiOsPrintf (" 0x%2.2X", ByteData[CurrentIndex]);
+
+            /* Add comma if there are more bytes to display */
+
+            if (CurrentIndex < (ByteCount - 1))
+            {
+                AcpiOsPrintf (",");
+            }
+            else
+            {
+                AcpiOsPrintf (" ");
+            }
+        }
+
+        /* Dump the ASCII equivalents within a comment */
+
+        AcpiOsPrintf ("  // ");
+        for (j = 0; j < ACPI_BUFFER_BYTES_PER_LINE; j++)
+        {
+            CurrentIndex = i + j;
+            if (CurrentIndex >= ByteCount)
+            {
+                break;
+            }
+
+            BufChar = ByteData[CurrentIndex];
+            if (isprint (BufChar))
+            {
+                AcpiOsPrintf ("%c", BufChar);
+            }
+            else
+            {
+                AcpiOsPrintf (".");
+            }
+        }
+
+        /* Finished with this line */
+
+        AcpiOsPrintf ("\n");
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmByteList
+ *
+ * PARAMETERS:  Info            - Parse tree walk info
+ *              Op              - Byte list op
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Dump a buffer byte list, handling the various types of buffers.
+ *              Buffer type must be already set in the Op DisasmOpcode.
+ *
+ ******************************************************************************/
+
+void
+AcpiDmByteList (
+    ACPI_OP_WALK_INFO       *Info,
+    ACPI_PARSE_OBJECT       *Op)
+{
+    UINT8                   *ByteData;
+    UINT32                  ByteCount;
+
+
+    ByteData = Op->Named.Data;
+    ByteCount = (UINT32) Op->Common.Value.Integer;
+
+    /*
+     * The byte list belongs to a buffer, and can be produced by either
+     * a ResourceTemplate, Unicode, quoted string, or a plain byte list.
+     */
+    switch (Op->Common.Parent->Common.DisasmOpcode)
+    {
+    case ACPI_DASM_RESOURCE:
+
+        AcpiDmResourceTemplate (
+            Info, Op->Common.Parent, ByteData, ByteCount);
+        break;
+
+    case ACPI_DASM_STRING:
+
+        AcpiDmIndent (Info->Level);
+        AcpiUtPrintString ((char *) ByteData, ACPI_UINT16_MAX);
+        AcpiOsPrintf ("\n");
+        break;
+
+    case ACPI_DASM_UUID:
+
+        AcpiDmUuid (Op);
+        break;
+
+    case ACPI_DASM_UNICODE:
+
+        AcpiDmUnicode (Op);
+        break;
+
+    case ACPI_DASM_PLD_METHOD:
+#if 0
+        AcpiDmDisasmByteList (Info->Level, ByteData, ByteCount);
+#endif
+        AcpiDmPldBuffer (Info->Level, ByteData, ByteCount);
+        break;
+
+    case ACPI_DASM_BUFFER:
+    default:
+        /*
+         * Not a resource, string, or unicode string.
+         * Just dump the buffer
+         */
+        AcpiDmDisasmByteList (Info->Level, ByteData, ByteCount);
+        break;
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmIsUuidBuffer
+ *
+ * PARAMETERS:  Op              - Buffer Object to be examined
+ *
+ * RETURN:      TRUE if buffer contains a UUID
+ *
+ * DESCRIPTION: Determine if a buffer Op contains a UUID
+ *
+ * To help determine whether the buffer is a UUID versus a raw data buffer,
+ * there a are a couple bytes we can look at:
+ *
+ *    xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
+ *
+ * The variant covered by the UUID specification is indicated by the two most
+ * significant bits of N being 1 0 (i.e., the hexadecimal N will always be
+ * 8, 9, A, or B).
+ *
+ * The variant covered by the UUID specification has five versions. For this
+ * variant, the four bits of M indicates the UUID version (i.e., the
+ * hexadecimal M will be either 1, 2, 3, 4, or 5).
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AcpiDmIsUuidBuffer (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    UINT8                   *ByteData;
+    UINT32                  ByteCount;
+    ACPI_PARSE_OBJECT       *SizeOp;
+    ACPI_PARSE_OBJECT       *NextOp;
+
+
+    /* Buffer size is the buffer argument */
+
+    SizeOp = Op->Common.Value.Arg;
+    if (!SizeOp)
+    {
+        return (FALSE);
+    }
+
+    /* Next, the initializer byte list to examine */
+
+    NextOp = SizeOp->Common.Next;
+    if (!NextOp)
+    {
+        return (FALSE);
+    }
+
+    /* Extract the byte list info */
+
+    ByteData = NextOp->Named.Data;
+    ByteCount = (UINT32) NextOp->Common.Value.Integer;
+
+    /* Byte count must be exactly 16 */
+
+    if (ByteCount != UUID_BUFFER_LENGTH)
+    {
+        return (FALSE);
+    }
+
+    /* Check for valid "M" and "N" values (see function header above) */
+
+    if (((ByteData[7] & 0xF0) == 0x00) || /* M={1,2,3,4,5} */
+        ((ByteData[7] & 0xF0) > 0x50)  ||
+        ((ByteData[8] & 0xF0) < 0x80)  || /* N={8,9,A,B} */
+        ((ByteData[8] & 0xF0) > 0xB0))
+    {
+        return (FALSE);
+    }
+
+    /* Ignore the Size argument in the disassembly of this buffer op */
+
+    SizeOp->Common.DisasmFlags |= ACPI_PARSEOP_IGNORE;
+    return (TRUE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmUuid
+ *
+ * PARAMETERS:  Op              - Byte List op containing a UUID
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Dump a buffer containing a UUID as a standard ASCII string.
+ *
+ * Output Format:
+ * In its canonical form, the UUID is represented by a string containing 32
+ * lowercase hexadecimal digits, displayed in 5 groups separated by hyphens.
+ * The complete form is 8-4-4-4-12 for a total of 36 characters (32
+ * alphanumeric characters representing hex digits and 4 hyphens). In bytes,
+ * 4-2-2-2-6. Example:
+ *
+ *    ToUUID ("107ededd-d381-4fd7-8da9-08e9a6c79644")
+ *
+ ******************************************************************************/
+
+static void
+AcpiDmUuid (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    UINT8                   *Data;
+    const char              *Description;
+
+
+    Data = ACPI_CAST_PTR (UINT8, Op->Named.Data);
+
+    /* Emit the 36-byte UUID string in the proper format/order */
+
+    AcpiOsPrintf (
+        "\"%2.2x%2.2x%2.2x%2.2x-"
+        "%2.2x%2.2x-"
+        "%2.2x%2.2x-"
+        "%2.2x%2.2x-"
+        "%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x\")",
+        Data[3], Data[2], Data[1], Data[0],
+        Data[5], Data[4],
+        Data[7], Data[6],
+        Data[8], Data[9],
+        Data[10], Data[11], Data[12], Data[13], Data[14], Data[15]);
+
+    /* Dump the UUID description string if available */
+
+    Description = AcpiAhMatchUuid (Data);
+    if (Description)
+    {
+        AcpiOsPrintf (" /* %s */", Description);
+    }
+    else
+    {
+        AcpiOsPrintf (" /* Unknown UUID */");
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmIsUnicodeBuffer
+ *
+ * PARAMETERS:  Op              - Buffer Object to be examined
+ *
+ * RETURN:      TRUE if buffer contains a UNICODE string
+ *
+ * DESCRIPTION: Determine if a buffer Op contains a Unicode string
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AcpiDmIsUnicodeBuffer (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    UINT8                   *ByteData;
+    UINT32                  ByteCount;
+    UINT32                  WordCount;
+    ACPI_PARSE_OBJECT       *SizeOp;
+    ACPI_PARSE_OBJECT       *NextOp;
+    UINT32                  i;
+
+
+    /* Buffer size is the buffer argument */
+
+    SizeOp = Op->Common.Value.Arg;
+    if (!SizeOp)
+    {
+        return (FALSE);
+    }
+
+    /* Next, the initializer byte list to examine */
+
+    NextOp = SizeOp->Common.Next;
+    if (!NextOp)
+    {
+        return (FALSE);
+    }
+
+    /* Extract the byte list info */
+
+    ByteData = NextOp->Named.Data;
+    ByteCount = (UINT32) NextOp->Common.Value.Integer;
+    WordCount = ACPI_DIV_2 (ByteCount);
+
+    /*
+     * Unicode string must have an even number of bytes and last
+     * word must be zero
+     */
+    if ((!ByteCount)     ||
+         (ByteCount < 4) ||
+         (ByteCount & 1) ||
+        ((UINT16 *) (void *) ByteData)[WordCount - 1] != 0)
+    {
+        return (FALSE);
+    }
+
+    /*
+     * For each word, 1st byte must be printable ascii, and the
+     * 2nd byte must be zero. This does not allow for escape
+     * sequences, but it is the most secure way to detect a
+     * unicode string.
+     */
+    for (i = 0; i < (ByteCount - 2); i += 2)
+    {
+        if ((ByteData[i] == 0) ||
+            !(isprint (ByteData[i])) ||
+            (ByteData[(ACPI_SIZE) i + 1] != 0))
+        {
+            return (FALSE);
+        }
+    }
+
+    /* Ignore the Size argument in the disassembly of this buffer op */
+
+    SizeOp->Common.DisasmFlags |= ACPI_PARSEOP_IGNORE;
+    return (TRUE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmIsStringBuffer
+ *
+ * PARAMETERS:  Op              - Buffer Object to be examined
+ *
+ * RETURN:      TRUE if buffer contains a ASCII string, FALSE otherwise
+ *
+ * DESCRIPTION: Determine if a buffer Op contains a ASCII string
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AcpiDmIsStringBuffer (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    UINT8                   *ByteData;
+    UINT32                  ByteCount;
+    ACPI_PARSE_OBJECT       *SizeOp;
+    ACPI_PARSE_OBJECT       *NextOp;
+    UINT32                  i;
+
+
+    /* Buffer size is the buffer argument */
+
+    SizeOp = Op->Common.Value.Arg;
+    if (!SizeOp)
+    {
+        return (FALSE);
+    }
+
+    /* Next, the initializer byte list to examine */
+
+    NextOp = SizeOp->Common.Next;
+    if (!NextOp)
+    {
+        return (FALSE);
+    }
+
+    /* Extract the byte list info */
+
+    ByteData = NextOp->Named.Data;
+    ByteCount = (UINT32) NextOp->Common.Value.Integer;
+
+    /* Last byte must be the null terminator */
+
+    if ((!ByteCount)     ||
+         (ByteCount < 2) ||
+         (ByteData[ByteCount-1] != 0))
+    {
+        return (FALSE);
+    }
+
+    /*
+     * Check for a possible standalone resource EndTag, ignore it
+     * here. However, this sequence is also the string "Y", but
+     * this seems rare enough to be acceptable.
+     */
+    if ((ByteCount == 2) && (ByteData[0] == 0x79))
+    {
+        return (FALSE);
+    }
+
+    /* Check all bytes for ASCII */
+
+    for (i = 0; i < (ByteCount - 1); i++)
+    {
+        /*
+         * TBD: allow some escapes (non-ascii chars).
+         * they will be handled in the string output routine
+         */
+
+        /* Not a string if not printable ascii */
+
+        if (!isprint (ByteData[i]))
+        {
+            return (FALSE);
+        }
+    }
+
+    return (TRUE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDmIsPldBuffer
+ *
+ * PARAMETERS:  Op                  - Buffer Object to be examined
+ *
+ * RETURN:      TRUE if buffer appears to contain data produced via the
+ *              ToPLD macro, FALSE otherwise
+ *
+ * DESCRIPTION: Determine if a buffer Op contains a _PLD structure
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AcpiDmIsPldBuffer (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_NAMESPACE_NODE     *Node;
+    ACPI_PARSE_OBJECT       *SizeOp;
+    ACPI_PARSE_OBJECT       *ByteListOp;
+    ACPI_PARSE_OBJECT       *ParentOp;
+    UINT64                  BufferSize;
+    UINT64                  InitializerSize;
+
+
+    if (!Op)
+    {
+        return (FALSE);
+    }
+
+    /*
+     * Get the BufferSize argument - Buffer(BufferSize)
+     * If the buffer was generated by the ToPld macro, it must
+     * be a BYTE constant.
+     */
+    SizeOp = Op->Common.Value.Arg;
+    if (!SizeOp || SizeOp->Common.AmlOpcode != AML_BYTE_OP)
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     {
         return (FALSE);
     }

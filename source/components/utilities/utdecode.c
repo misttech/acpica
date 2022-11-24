@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -113,6 +114,126 @@ const char        *AcpiGbl_RegionTypes[ACPI_NUM_PREDEFINED_REGIONS] =
     "GeneralPurposeIo",  /* 0x08 */
     "GenericSerialBus",  /* 0x09 */
     "PlatformCommChannel"/* 0x0A */
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acnamesp.h"
+#include "amlcode.h"
+
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utdecode")
+
+
+/*
+ * Properties of the ACPI Object Types, both internal and external.
+ * The table is indexed by values of ACPI_OBJECT_TYPE
+ */
+const UINT8                     AcpiGbl_NsProperties[ACPI_NUM_NS_TYPES] =
+{
+    ACPI_NS_NORMAL,                     /* 00 Any              */
+    ACPI_NS_NORMAL,                     /* 01 Number           */
+    ACPI_NS_NORMAL,                     /* 02 String           */
+    ACPI_NS_NORMAL,                     /* 03 Buffer           */
+    ACPI_NS_NORMAL,                     /* 04 Package          */
+    ACPI_NS_NORMAL,                     /* 05 FieldUnit        */
+    ACPI_NS_NEWSCOPE,                   /* 06 Device           */
+    ACPI_NS_NORMAL,                     /* 07 Event            */
+    ACPI_NS_NEWSCOPE,                   /* 08 Method           */
+    ACPI_NS_NORMAL,                     /* 09 Mutex            */
+    ACPI_NS_NORMAL,                     /* 10 Region           */
+    ACPI_NS_NEWSCOPE,                   /* 11 Power            */
+    ACPI_NS_NEWSCOPE,                   /* 12 Processor        */
+    ACPI_NS_NEWSCOPE,                   /* 13 Thermal          */
+    ACPI_NS_NORMAL,                     /* 14 BufferField      */
+    ACPI_NS_NORMAL,                     /* 15 DdbHandle        */
+    ACPI_NS_NORMAL,                     /* 16 Debug Object     */
+    ACPI_NS_NORMAL,                     /* 17 DefField         */
+    ACPI_NS_NORMAL,                     /* 18 BankField        */
+    ACPI_NS_NORMAL,                     /* 19 IndexField       */
+    ACPI_NS_NORMAL,                     /* 20 Reference        */
+    ACPI_NS_NORMAL,                     /* 21 Alias            */
+    ACPI_NS_NORMAL,                     /* 22 MethodAlias      */
+    ACPI_NS_NORMAL,                     /* 23 Notify           */
+    ACPI_NS_NORMAL,                     /* 24 Address Handler  */
+    ACPI_NS_NEWSCOPE | ACPI_NS_LOCAL,   /* 25 Resource Desc    */
+    ACPI_NS_NEWSCOPE | ACPI_NS_LOCAL,   /* 26 Resource Field   */
+    ACPI_NS_NEWSCOPE,                   /* 27 Scope            */
+    ACPI_NS_NORMAL,                     /* 28 Extra            */
+    ACPI_NS_NORMAL,                     /* 29 Data             */
+    ACPI_NS_NORMAL                      /* 30 Invalid          */
+};
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtGetRegionName
+ *
+ * PARAMETERS:  Space ID            - ID for the region
+ *
+ * RETURN:      Decoded region SpaceId name
+ *
+ * DESCRIPTION: Translate a Space ID into a name string (Debug only)
+ *
+ ******************************************************************************/
+
+/* Region type decoding */
+
+const char        *AcpiGbl_RegionTypes[ACPI_NUM_PREDEFINED_REGIONS] =
+{
+    "SystemMemory",       /* 0x00 */
+    "SystemIO",           /* 0x01 */
+    "PCI_Config",         /* 0x02 */
+    "EmbeddedControl",    /* 0x03 */
+    "SMBus",              /* 0x04 */
+    "SystemCMOS",         /* 0x05 */
+    "PCIBARTarget",       /* 0x06 */
+    "IPMI",               /* 0x07 */
+    "GeneralPurposeIo",   /* 0x08 */
+    "GenericSerialBus",   /* 0x09 */
+    "PCC",                /* 0x0A */
+    "PlatformRtMechanism" /* 0x0B */
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 };
 
 

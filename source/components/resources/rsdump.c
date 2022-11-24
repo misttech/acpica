@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -346,6 +347,368 @@ AcpiRsDumpDescriptor (
         case ACPI_RSD_3BITFLAG:
 
             AcpiRsOutString (Name, Table->Pointer [*Target & 0x07]);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acresrc.h"
+
+#define _COMPONENT          ACPI_RESOURCES
+        ACPI_MODULE_NAME    ("rsdump")
+
+/*
+ * All functions in this module are used by the AML Debugger only
+ */
+
+/* Local prototypes */
+
+static void
+AcpiRsOutString (
+    const char              *Title,
+    const char              *Value);
+
+static void
+AcpiRsOutInteger8 (
+    const char              *Title,
+    UINT8                   Value);
+
+static void
+AcpiRsOutInteger16 (
+    const char              *Title,
+    UINT16                  Value);
+
+static void
+AcpiRsOutInteger32 (
+    const char              *Title,
+    UINT32                  Value);
+
+static void
+AcpiRsOutInteger64 (
+    const char              *Title,
+    UINT64                  Value);
+
+static void
+AcpiRsOutTitle (
+    const char              *Title);
+
+static void
+AcpiRsDumpByteList (
+    UINT16                  Length,
+    UINT8                   *Data);
+
+static void
+AcpiRsDumpWordList (
+    UINT16                  Length,
+    UINT16                  *Data);
+
+static void
+AcpiRsDumpDwordList (
+    UINT8                   Length,
+    UINT32                  *Data);
+
+static void
+AcpiRsDumpShortByteList (
+    UINT8                   Length,
+    UINT8                   *Data);
+
+static void
+AcpiRsDumpResourceSource (
+    ACPI_RESOURCE_SOURCE    *ResourceSource);
+
+static void
+AcpiRsDumpResourceLabel (
+    char                   *Title,
+    ACPI_RESOURCE_LABEL    *ResourceLabel);
+
+static void
+AcpiRsDumpAddressCommon (
+    ACPI_RESOURCE_DATA      *Resource);
+
+static void
+AcpiRsDumpDescriptor (
+    void                    *Resource,
+    ACPI_RSDUMP_INFO        *Table);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiRsDumpResourceList
+ *
+ * PARAMETERS:  ResourceList        - Pointer to a resource descriptor list
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Dispatches the structure to the correct dump routine.
+ *
+ ******************************************************************************/
+
+void
+AcpiRsDumpResourceList (
+    ACPI_RESOURCE           *ResourceList)
+{
+    UINT32                  Count = 0;
+    UINT32                  Type;
+
+
+    ACPI_FUNCTION_ENTRY ();
+
+
+    /* Check if debug output enabled */
+
+    if (!ACPI_IS_DEBUG_ENABLED (ACPI_LV_RESOURCES, _COMPONENT))
+    {
+        return;
+    }
+
+    /* Walk list and dump all resource descriptors (END_TAG terminates) */
+
+    do
+    {
+        AcpiOsPrintf ("\n[%02X] ", Count);
+        Count++;
+
+        /* Validate Type before dispatch */
+
+        Type = ResourceList->Type;
+        if (Type > ACPI_RESOURCE_TYPE_MAX)
+        {
+            AcpiOsPrintf (
+                "Invalid descriptor type (%X) in resource list\n",
+                ResourceList->Type);
+            return;
+        }
+        else if (!ResourceList->Type)
+        {
+            ACPI_ERROR ((AE_INFO, "Invalid Zero Resource Type"));
+            return;
+        }
+
+        /* Sanity check the length. It must not be zero, or we loop forever */
+
+        if (!ResourceList->Length)
+        {
+            AcpiOsPrintf (
+                "Invalid zero length descriptor in resource list\n");
+            return;
+        }
+
+        /* Dump the resource descriptor */
+
+        if (Type == ACPI_RESOURCE_TYPE_SERIAL_BUS)
+        {
+            AcpiRsDumpDescriptor (&ResourceList->Data,
+                AcpiGbl_DumpSerialBusDispatch[
+                    ResourceList->Data.CommonSerialBus.Type]);
+        }
+        else
+        {
+            AcpiRsDumpDescriptor (&ResourceList->Data,
+                AcpiGbl_DumpResourceDispatch[Type]);
+        }
+
+        /* Point to the next resource structure */
+
+        ResourceList = ACPI_NEXT_RESOURCE (ResourceList);
+
+        /* Exit when END_TAG descriptor is reached */
+
+    } while (Type != ACPI_RESOURCE_TYPE_END_TAG);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiRsDumpIrqList
+ *
+ * PARAMETERS:  RouteTable      - Pointer to the routing table to dump.
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Print IRQ routing table
+ *
+ ******************************************************************************/
+
+void
+AcpiRsDumpIrqList (
+    UINT8                   *RouteTable)
+{
+    ACPI_PCI_ROUTING_TABLE  *PrtElement;
+    UINT8                   Count;
+
+
+    ACPI_FUNCTION_ENTRY ();
+
+
+    /* Check if debug output enabled */
+
+    if (!ACPI_IS_DEBUG_ENABLED (ACPI_LV_RESOURCES, _COMPONENT))
+    {
+        return;
+    }
+
+    PrtElement = ACPI_CAST_PTR (ACPI_PCI_ROUTING_TABLE, RouteTable);
+
+    /* Dump all table elements, Exit on zero length element */
+
+    for (Count = 0; PrtElement->Length; Count++)
+    {
+        AcpiOsPrintf ("\n[%02X] PCI IRQ Routing Table Package\n", Count);
+        AcpiRsDumpDescriptor (PrtElement, AcpiRsDumpPrt);
+
+        PrtElement = ACPI_ADD_PTR (ACPI_PCI_ROUTING_TABLE,
+            PrtElement, PrtElement->Length);
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiRsDumpDescriptor
+ *
+ * PARAMETERS:  Resource            - Buffer containing the resource
+ *              Table               - Table entry to decode the resource
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Dump a resource descriptor based on a dump table entry.
+ *
+ ******************************************************************************/
+
+static void
+AcpiRsDumpDescriptor (
+    void                    *Resource,
+    ACPI_RSDUMP_INFO        *Table)
+{
+    UINT8                   *Target = NULL;
+    UINT8                   *PreviousTarget;
+    const char              *Name;
+    UINT8                   Count;
+
+
+    /* First table entry must contain the table length (# of table entries) */
+
+    Count = Table->Offset;
+
+    while (Count)
+    {
+        PreviousTarget = Target;
+        Target = ACPI_ADD_PTR (UINT8, Resource, Table->Offset);
+        Name = Table->Name;
+
+        switch (Table->Opcode)
+        {
+        case ACPI_RSD_TITLE:
+            /*
+             * Optional resource title
+             */
+            if (Table->Name)
+            {
+                AcpiOsPrintf ("%s Resource\n", Name);
+            }
+            break;
+
+        /* Strings */
+
+        case ACPI_RSD_LITERAL:
+
+            AcpiRsOutString (Name, ACPI_CAST_PTR (char, Table->Pointer));
+            break;
+
+        case ACPI_RSD_STRING:
+
+            AcpiRsOutString (Name, ACPI_CAST_PTR (char, Target));
+            break;
+
+        /* Data items, 8/16/32/64 bit */
+
+        case ACPI_RSD_UINT8:
+
+            if (Table->Pointer)
+            {
+                AcpiRsOutString (Name, Table->Pointer [*Target]);
+            }
+            else
+            {
+                AcpiRsOutInteger8 (Name, ACPI_GET8 (Target));
+            }
+            break;
+
+        case ACPI_RSD_UINT16:
+
+            AcpiRsOutInteger16 (Name, ACPI_GET16 (Target));
+            break;
+
+        case ACPI_RSD_UINT32:
+
+            AcpiRsOutInteger32 (Name, ACPI_GET32 (Target));
+            break;
+
+        case ACPI_RSD_UINT64:
+
+            AcpiRsOutInteger64 (Name, ACPI_GET64 (Target));
+            break;
+
+        /* Flags: 1-bit and 2-bit flags supported */
+
+        case ACPI_RSD_1BITFLAG:
+
+            AcpiRsOutString (Name, Table->Pointer [*Target & 0x01]);
+            break;
+
+        case ACPI_RSD_2BITFLAG:
+
+            AcpiRsOutString (Name, Table->Pointer [*Target & 0x03]);
+            break;
+
+        case ACPI_RSD_3BITFLAG:
+
+            AcpiRsOutString (Name, Table->Pointer [*Target & 0x07]);
+            break;
+
+        case ACPI_RSD_6BITFLAG:
+
+            AcpiRsOutInteger8 (Name, (ACPI_GET8 (Target) & 0x3F));
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
             break;
 
         case ACPI_RSD_SHORTLIST:

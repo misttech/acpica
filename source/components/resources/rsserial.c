@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -212,6 +213,294 @@ ACPI_RSCONVERT_INFO     AcpiRsConvertPinFunction[13] =
     {ACPI_RSC_MOVE_GPIO_RES,   ACPI_RS_OFFSET (Data.PinFunction.VendorData),
                         AML_OFFSET (PinFunction.VendorOffset),
                         0},
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acresrc.h"
+
+#define _COMPONENT          ACPI_RESOURCES
+        ACPI_MODULE_NAME    ("rsserial")
+
+
+/*******************************************************************************
+ *
+ * AcpiRsConvertGpio
+ *
+ ******************************************************************************/
+
+ACPI_RSCONVERT_INFO     AcpiRsConvertGpio[18] =
+{
+    {ACPI_RSC_INITGET,  ACPI_RESOURCE_TYPE_GPIO,
+                        ACPI_RS_SIZE (ACPI_RESOURCE_GPIO),
+                        ACPI_RSC_TABLE_SIZE (AcpiRsConvertGpio)},
+
+    {ACPI_RSC_INITSET,  ACPI_RESOURCE_NAME_GPIO,
+                        sizeof (AML_RESOURCE_GPIO),
+                        0},
+
+    /*
+     * These fields are contiguous in both the source and destination:
+     * RevisionId
+     * ConnectionType
+     */
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Gpio.RevisionId),
+                        AML_OFFSET (Gpio.RevisionId),
+                        2},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Gpio.ProducerConsumer),
+                        AML_OFFSET (Gpio.Flags),
+                        0},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Gpio.Shareable),
+                        AML_OFFSET (Gpio.IntFlags),
+                        3},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Gpio.WakeCapable),
+                        AML_OFFSET (Gpio.IntFlags),
+                        4},
+
+    {ACPI_RSC_2BITFLAG, ACPI_RS_OFFSET (Data.Gpio.IoRestriction),
+                        AML_OFFSET (Gpio.IntFlags),
+                        0},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Gpio.Triggering),
+                        AML_OFFSET (Gpio.IntFlags),
+                        0},
+
+    {ACPI_RSC_2BITFLAG, ACPI_RS_OFFSET (Data.Gpio.Polarity),
+                        AML_OFFSET (Gpio.IntFlags),
+                        1},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Gpio.PinConfig),
+                        AML_OFFSET (Gpio.PinConfig),
+                        1},
+
+    /*
+     * These fields are contiguous in both the source and destination:
+     * DriveStrength
+     * DebounceTimeout
+     */
+    {ACPI_RSC_MOVE16,   ACPI_RS_OFFSET (Data.Gpio.DriveStrength),
+                        AML_OFFSET (Gpio.DriveStrength),
+                        2},
+
+    /* Pin Table */
+
+    {ACPI_RSC_COUNT_GPIO_PIN, ACPI_RS_OFFSET (Data.Gpio.PinTableLength),
+                        AML_OFFSET (Gpio.PinTableOffset),
+                        AML_OFFSET (Gpio.ResSourceOffset)},
+
+    {ACPI_RSC_MOVE_GPIO_PIN, ACPI_RS_OFFSET (Data.Gpio.PinTable),
+                        AML_OFFSET (Gpio.PinTableOffset),
+                        0},
+
+    /* Resource Source */
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Gpio.ResourceSource.Index),
+                        AML_OFFSET (Gpio.ResSourceIndex),
+                        1},
+
+    {ACPI_RSC_COUNT_GPIO_RES,  ACPI_RS_OFFSET (Data.Gpio.ResourceSource.StringLength),
+                        AML_OFFSET (Gpio.ResSourceOffset),
+                        AML_OFFSET (Gpio.VendorOffset)},
+
+    {ACPI_RSC_MOVE_GPIO_RES,   ACPI_RS_OFFSET (Data.Gpio.ResourceSource.StringPtr),
+                        AML_OFFSET (Gpio.ResSourceOffset),
+                        0},
+
+    /* Vendor Data */
+
+    {ACPI_RSC_COUNT_GPIO_VEN,   ACPI_RS_OFFSET (Data.Gpio.VendorLength),
+                        AML_OFFSET (Gpio.VendorLength),
+                        1},
+
+    {ACPI_RSC_MOVE_GPIO_RES,   ACPI_RS_OFFSET (Data.Gpio.VendorData),
+                        AML_OFFSET (Gpio.VendorOffset),
+                        0},
+};
+
+/*******************************************************************************
+ *
+ * AcpiRsConvertPinfunction
+ *
+ ******************************************************************************/
+
+ACPI_RSCONVERT_INFO     AcpiRsConvertPinFunction[13] =
+{
+    {ACPI_RSC_INITGET,  ACPI_RESOURCE_TYPE_PIN_FUNCTION,
+                        ACPI_RS_SIZE (ACPI_RESOURCE_PIN_FUNCTION),
+                        ACPI_RSC_TABLE_SIZE (AcpiRsConvertPinFunction)},
+
+    {ACPI_RSC_INITSET,  ACPI_RESOURCE_NAME_PIN_FUNCTION,
+                        sizeof (AML_RESOURCE_PIN_FUNCTION),
+                        0},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.PinFunction.RevisionId),
+                        AML_OFFSET (PinFunction.RevisionId),
+                        1},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.PinFunction.Shareable),
+                        AML_OFFSET (PinFunction.Flags),
+                        0},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.PinFunction.PinConfig),
+                        AML_OFFSET (PinFunction.PinConfig),
+                        1},
+
+    {ACPI_RSC_MOVE16,   ACPI_RS_OFFSET (Data.PinFunction.FunctionNumber),
+                        AML_OFFSET (PinFunction.FunctionNumber),
+                        2},
+
+    /* Pin Table */
+
+    /*
+     * It is OK to use GPIO operations here because none of them refer GPIO
+     * structures directly but instead use offsets given here.
+     */
+
+    {ACPI_RSC_COUNT_GPIO_PIN, ACPI_RS_OFFSET (Data.PinFunction.PinTableLength),
+                        AML_OFFSET (PinFunction.PinTableOffset),
+                        AML_OFFSET (PinFunction.ResSourceOffset)},
+
+    {ACPI_RSC_MOVE_GPIO_PIN, ACPI_RS_OFFSET (Data.PinFunction.PinTable),
+                        AML_OFFSET (PinFunction.PinTableOffset),
+                        0},
+
+    /* Resource Source */
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.PinFunction.ResourceSource.Index),
+                        AML_OFFSET (PinFunction.ResSourceIndex),
+                        1},
+
+    {ACPI_RSC_COUNT_GPIO_RES,  ACPI_RS_OFFSET (Data.PinFunction.ResourceSource.StringLength),
+                        AML_OFFSET (PinFunction.ResSourceOffset),
+                        AML_OFFSET (PinFunction.VendorOffset)},
+
+    {ACPI_RSC_MOVE_GPIO_RES,   ACPI_RS_OFFSET (Data.PinFunction.ResourceSource.StringPtr),
+                        AML_OFFSET (PinFunction.ResSourceOffset),
+                        0},
+
+    /* Vendor Data */
+
+    {ACPI_RSC_COUNT_GPIO_VEN,   ACPI_RS_OFFSET (Data.PinFunction.VendorLength),
+                        AML_OFFSET (PinFunction.VendorLength),
+                        1},
+
+    {ACPI_RSC_MOVE_GPIO_RES,   ACPI_RS_OFFSET (Data.PinFunction.VendorData),
+                        AML_OFFSET (PinFunction.VendorOffset),
+                        0},
+};
+
+
+/*******************************************************************************
+ *
+ * AcpiRsConvertCsi2SerialBus
+ *
+ ******************************************************************************/
+
+ACPI_RSCONVERT_INFO     AcpiRsConvertCsi2SerialBus[14] =
+{
+    {ACPI_RSC_INITGET,  ACPI_RESOURCE_TYPE_SERIAL_BUS,
+                        ACPI_RS_SIZE (ACPI_RESOURCE_CSI2_SERIALBUS),
+                        ACPI_RSC_TABLE_SIZE (AcpiRsConvertCsi2SerialBus)},
+
+    {ACPI_RSC_INITSET,  ACPI_RESOURCE_NAME_SERIAL_BUS,
+                        sizeof (AML_RESOURCE_CSI2_SERIALBUS),
+                        0},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.CommonSerialBus.RevisionId),
+                        AML_OFFSET (CommonSerialBus.RevisionId),
+                        1},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Csi2SerialBus.Type),
+                        AML_OFFSET (Csi2SerialBus.Type),
+                        1},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Csi2SerialBus.ProducerConsumer),
+                        AML_OFFSET (Csi2SerialBus.Flags),
+                        1},
+
+    {ACPI_RSC_1BITFLAG, ACPI_RS_OFFSET (Data.Csi2SerialBus.SlaveMode),
+                        AML_OFFSET (Csi2SerialBus.Flags),
+                        0},
+
+    {ACPI_RSC_2BITFLAG, ACPI_RS_OFFSET (Data.Csi2SerialBus.PhyType),
+                        AML_OFFSET (Csi2SerialBus.TypeSpecificFlags),
+                        0},
+
+    {ACPI_RSC_6BITFLAG, ACPI_RS_OFFSET (Data.Csi2SerialBus.LocalPortInstance),
+                        AML_OFFSET (Csi2SerialBus.TypeSpecificFlags),
+                        2},
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Csi2SerialBus.TypeRevisionId),
+                        AML_OFFSET (Csi2SerialBus.TypeRevisionId),
+                        1},
+
+    /* Vendor data */
+
+    {ACPI_RSC_COUNT_SERIAL_VEN, ACPI_RS_OFFSET (Data.Csi2SerialBus.VendorLength),
+                        AML_OFFSET (Csi2SerialBus.TypeDataLength),
+                        AML_RESOURCE_CSI2_MIN_DATA_LEN},
+
+    {ACPI_RSC_MOVE_SERIAL_VEN,  ACPI_RS_OFFSET (Data.Csi2SerialBus.VendorData),
+                        0,
+                        sizeof (AML_RESOURCE_CSI2_SERIALBUS)},
+
+    /* Resource Source */
+
+    {ACPI_RSC_MOVE8,    ACPI_RS_OFFSET (Data.Csi2SerialBus.ResourceSource.Index),
+                        AML_OFFSET (Csi2SerialBus.ResSourceIndex),
+                        1},
+
+    {ACPI_RSC_COUNT_SERIAL_RES, ACPI_RS_OFFSET (Data.Csi2SerialBus.ResourceSource.StringLength),
+                        AML_OFFSET (Csi2SerialBus.TypeDataLength),
+                        sizeof (AML_RESOURCE_CSI2_SERIALBUS)},
+
+    {ACPI_RSC_MOVE_SERIAL_RES,  ACPI_RS_OFFSET (Data.Csi2SerialBus.ResourceSource.StringPtr),
+                        AML_OFFSET (Csi2SerialBus.TypeDataLength),
+                        sizeof (AML_RESOURCE_CSI2_SERIALBUS)},
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 };
 
 

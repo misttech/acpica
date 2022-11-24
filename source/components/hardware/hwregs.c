@@ -5,6 +5,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -522,6 +523,533 @@ AcpiHwGetBitRegisterInfo (
  *
  * DESCRIPTION: Write the PM1 A/B control registers. These registers are
  *              different than than the PM1 A/B status and enable registers
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acevents.h"
+
+#define _COMPONENT          ACPI_HARDWARE
+        ACPI_MODULE_NAME    ("hwregs")
+
+
+#if (!ACPI_REDUCED_HARDWARE)
+
+/* Local Prototypes */
+
+static UINT8
+AcpiHwGetAccessBitWidth (
+    UINT64                  Address,
+    ACPI_GENERIC_ADDRESS    *Reg,
+    UINT8                   MaxBitWidth);
+
+static ACPI_STATUS
+AcpiHwReadMultiple (
+    UINT32                  *Value,
+    ACPI_GENERIC_ADDRESS    *RegisterA,
+    ACPI_GENERIC_ADDRESS    *RegisterB);
+
+static ACPI_STATUS
+AcpiHwWriteMultiple (
+    UINT32                  Value,
+    ACPI_GENERIC_ADDRESS    *RegisterA,
+    ACPI_GENERIC_ADDRESS    *RegisterB);
+
+#endif /* !ACPI_REDUCED_HARDWARE */
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwGetAccessBitWidth
+ *
+ * PARAMETERS:  Address             - GAS register address
+ *              Reg                 - GAS register structure
+ *              MaxBitWidth         - Max BitWidth supported (32 or 64)
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Obtain optimal access bit width
+ *
+ ******************************************************************************/
+
+static UINT8
+AcpiHwGetAccessBitWidth (
+    UINT64                  Address,
+    ACPI_GENERIC_ADDRESS    *Reg,
+    UINT8                   MaxBitWidth)
+{
+    UINT8                   AccessBitWidth;
+
+
+    /*
+     * GAS format "register", used by FADT:
+     *  1. Detected if BitOffset is 0 and BitWidth is 8/16/32/64;
+     *  2. AccessSize field is ignored and BitWidth field is used for
+     *     determining the boundary of the IO accesses.
+     * GAS format "region", used by APEI registers:
+     *  1. Detected if BitOffset is not 0 or BitWidth is not 8/16/32/64;
+     *  2. AccessSize field is used for determining the boundary of the
+     *     IO accesses;
+     *  3. BitOffset/BitWidth fields are used to describe the "region".
+     *
+     * Note: This algorithm assumes that the "Address" fields should always
+     *       contain aligned values.
+     */
+    if (!Reg->BitOffset && Reg->BitWidth &&
+        ACPI_IS_POWER_OF_TWO (Reg->BitWidth) &&
+        ACPI_IS_ALIGNED (Reg->BitWidth, 8))
+    {
+        AccessBitWidth = Reg->BitWidth;
+    }
+    else if (Reg->AccessWidth)
+    {
+        AccessBitWidth = ACPI_ACCESS_BIT_WIDTH (Reg->AccessWidth);
+    }
+    else
+    {
+        AccessBitWidth = ACPI_ROUND_UP_POWER_OF_TWO_8 (
+            Reg->BitOffset + Reg->BitWidth);
+        if (AccessBitWidth <= 8)
+        {
+            AccessBitWidth = 8;
+        }
+        else
+        {
+            while (!ACPI_IS_ALIGNED (Address, AccessBitWidth >> 3))
+            {
+                AccessBitWidth >>= 1;
+            }
+        }
+    }
+
+    /* Maximum IO port access bit width is 32 */
+
+    if (Reg->SpaceId == ACPI_ADR_SPACE_SYSTEM_IO)
+    {
+        MaxBitWidth = 32;
+    }
+
+    /*
+     * Return access width according to the requested maximum access bit width,
+     * as the caller should know the format of the register and may enforce
+     * a 32-bit accesses.
+     */
+    if (AccessBitWidth < MaxBitWidth)
+    {
+        return (AccessBitWidth);
+    }
+    return (MaxBitWidth);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwValidateRegister
+ *
+ * PARAMETERS:  Reg                 - GAS register structure
+ *              MaxBitWidth         - Max BitWidth supported (32 or 64)
+ *              Address             - Pointer to where the gas->address
+ *                                    is returned
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Validate the contents of a GAS register. Checks the GAS
+ *              pointer, Address, SpaceId, BitWidth, and BitOffset.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiHwValidateRegister (
+    ACPI_GENERIC_ADDRESS    *Reg,
+    UINT8                   MaxBitWidth,
+    UINT64                  *Address)
+{
+    UINT8                   BitWidth;
+    UINT8                   AccessWidth;
+
+
+    /* Must have a valid pointer to a GAS structure */
+
+    if (!Reg)
+    {
+        return (AE_BAD_PARAMETER);
+    }
+
+    /*
+     * Copy the target address. This handles possible alignment issues.
+     * Address must not be null. A null address also indicates an optional
+     * ACPI register that is not supported, so no error message.
+     */
+    ACPI_MOVE_64_TO_64 (Address, &Reg->Address);
+    if (!(*Address))
+    {
+        return (AE_BAD_ADDRESS);
+    }
+
+    /* Validate the SpaceID */
+
+    if ((Reg->SpaceId != ACPI_ADR_SPACE_SYSTEM_MEMORY) &&
+        (Reg->SpaceId != ACPI_ADR_SPACE_SYSTEM_IO))
+    {
+        ACPI_ERROR ((AE_INFO,
+            "Unsupported address space: 0x%X", Reg->SpaceId));
+        return (AE_SUPPORT);
+    }
+
+    /* Validate the AccessWidth */
+
+    if (Reg->AccessWidth > 4)
+    {
+        ACPI_ERROR ((AE_INFO,
+            "Unsupported register access width: 0x%X", Reg->AccessWidth));
+        return (AE_SUPPORT);
+    }
+
+    /* Validate the BitWidth, convert AccessWidth into number of bits */
+
+    AccessWidth = AcpiHwGetAccessBitWidth (*Address, Reg, MaxBitWidth);
+    BitWidth = ACPI_ROUND_UP (Reg->BitOffset + Reg->BitWidth, AccessWidth);
+    if (MaxBitWidth < BitWidth)
+    {
+        ACPI_WARNING ((AE_INFO,
+            "Requested bit width 0x%X is smaller than register bit width 0x%X",
+            MaxBitWidth, BitWidth));
+        return (AE_SUPPORT);
+    }
+
+    return (AE_OK);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwRead
+ *
+ * PARAMETERS:  Value               - Where the value is returned
+ *              Reg                 - GAS register structure
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Read from either memory or IO space. This is a 64-bit max
+ *              version of AcpiRead.
+ *
+ * LIMITATIONS: <These limitations also apply to AcpiHwWrite>
+ *      SpaceID must be SystemMemory or SystemIO.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiHwRead (
+    UINT64                  *Value,
+    ACPI_GENERIC_ADDRESS    *Reg)
+{
+    UINT64                  Address;
+    UINT8                   AccessWidth;
+    UINT32                  BitWidth;
+    UINT8                   BitOffset;
+    UINT64                  Value64;
+    UINT32                  Value32;
+    UINT8                   Index;
+    ACPI_STATUS             Status;
+
+
+    ACPI_FUNCTION_NAME (HwRead);
+
+
+    /* Validate contents of the GAS register */
+
+    Status = AcpiHwValidateRegister (Reg, 64, &Address);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    /*
+     * Initialize entire 64-bit return value to zero, convert AccessWidth
+     * into number of bits based
+     */
+    *Value = 0;
+    AccessWidth = AcpiHwGetAccessBitWidth (Address, Reg, 64);
+    BitWidth = Reg->BitOffset + Reg->BitWidth;
+    BitOffset = Reg->BitOffset;
+
+    /*
+     * Two address spaces supported: Memory or IO. PCI_Config is
+     * not supported here because the GAS structure is insufficient
+     */
+    Index = 0;
+    while (BitWidth)
+    {
+        if (BitOffset >= AccessWidth)
+        {
+            Value64 = 0;
+            BitOffset -= AccessWidth;
+        }
+        else
+        {
+            if (Reg->SpaceId == ACPI_ADR_SPACE_SYSTEM_MEMORY)
+            {
+                Status = AcpiOsReadMemory ((ACPI_PHYSICAL_ADDRESS)
+                    Address + Index * ACPI_DIV_8 (AccessWidth),
+                    &Value64, AccessWidth);
+            }
+            else /* ACPI_ADR_SPACE_SYSTEM_IO, validated earlier */
+            {
+                Status = AcpiHwReadPort ((ACPI_IO_ADDRESS)
+                    Address + Index * ACPI_DIV_8 (AccessWidth),
+                    &Value32, AccessWidth);
+                Value64 = (UINT64) Value32;
+            }
+        }
+
+        /*
+         * Use offset style bit writes because "Index * AccessWidth" is
+         * ensured to be less than 64-bits by AcpiHwValidateRegister().
+         */
+        ACPI_SET_BITS (Value, Index * AccessWidth,
+            ACPI_MASK_BITS_ABOVE_64 (AccessWidth), Value64);
+
+        BitWidth -= BitWidth > AccessWidth ? AccessWidth : BitWidth;
+        Index++;
+    }
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_IO,
+        "Read:  %8.8X%8.8X width %2d from %8.8X%8.8X (%s)\n",
+        ACPI_FORMAT_UINT64 (*Value), AccessWidth,
+        ACPI_FORMAT_UINT64 (Address), AcpiUtGetRegionName (Reg->SpaceId)));
+
+    return (Status);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwWrite
+ *
+ * PARAMETERS:  Value               - Value to be written
+ *              Reg                 - GAS register structure
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Write to either memory or IO space. This is a 64-bit max
+ *              version of AcpiWrite.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiHwWrite (
+    UINT64                  Value,
+    ACPI_GENERIC_ADDRESS    *Reg)
+{
+    UINT64                  Address;
+    UINT8                   AccessWidth;
+    UINT32                  BitWidth;
+    UINT8                   BitOffset;
+    UINT64                  Value64;
+    UINT8                   Index;
+    ACPI_STATUS             Status;
+
+
+    ACPI_FUNCTION_NAME (HwWrite);
+
+
+    /* Validate contents of the GAS register */
+
+    Status = AcpiHwValidateRegister (Reg, 64, &Address);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+
+    /* Convert AccessWidth into number of bits based */
+
+    AccessWidth = AcpiHwGetAccessBitWidth (Address, Reg, 64);
+    BitWidth = Reg->BitOffset + Reg->BitWidth;
+    BitOffset = Reg->BitOffset;
+
+    /*
+     * Two address spaces supported: Memory or IO. PCI_Config is
+     * not supported here because the GAS structure is insufficient
+     */
+    Index = 0;
+    while (BitWidth)
+    {
+        /*
+         * Use offset style bit reads because "Index * AccessWidth" is
+         * ensured to be less than 64-bits by AcpiHwValidateRegister().
+         */
+        Value64 = ACPI_GET_BITS (&Value, Index * AccessWidth,
+            ACPI_MASK_BITS_ABOVE_64 (AccessWidth));
+
+        if (BitOffset >= AccessWidth)
+        {
+            BitOffset -= AccessWidth;
+        }
+        else
+        {
+            if (Reg->SpaceId == ACPI_ADR_SPACE_SYSTEM_MEMORY)
+            {
+                Status = AcpiOsWriteMemory ((ACPI_PHYSICAL_ADDRESS)
+                    Address + Index * ACPI_DIV_8 (AccessWidth),
+                    Value64, AccessWidth);
+            }
+            else /* ACPI_ADR_SPACE_SYSTEM_IO, validated earlier */
+            {
+                Status = AcpiHwWritePort ((ACPI_IO_ADDRESS)
+                    Address + Index * ACPI_DIV_8 (AccessWidth),
+                    (UINT32) Value64, AccessWidth);
+            }
+        }
+
+        /*
+         * Index * AccessWidth is ensured to be less than 32-bits by
+         * AcpiHwValidateRegister().
+         */
+        BitWidth -= BitWidth > AccessWidth ? AccessWidth : BitWidth;
+        Index++;
+    }
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_IO,
+        "Wrote: %8.8X%8.8X width %2d   to %8.8X%8.8X (%s)\n",
+        ACPI_FORMAT_UINT64 (Value), AccessWidth,
+        ACPI_FORMAT_UINT64 (Address), AcpiUtGetRegionName (Reg->SpaceId)));
+
+    return (Status);
+}
+
+
+#if (!ACPI_REDUCED_HARDWARE)
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiHwClearAcpiStatus
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Clears all fixed and general purpose status bits
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiHwClearAcpiStatus (
+    void)
+{
+    ACPI_STATUS             Status;
+    ACPI_CPU_FLAGS          LockFlags = 0;
+
+
+    ACPI_FUNCTION_TRACE (HwClearAcpiStatus);
+
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_IO, "About to write %04X to %8.8X%8.8X\n",
+        ACPI_BITMASK_ALL_FIXED_STATUS,
+        ACPI_FORMAT_UINT64 (AcpiGbl_XPm1aStatus.Address)));
+
+    LockFlags = AcpiOsAcquireLock (AcpiGbl_HardwareLock);
+
+    /* Clear the fixed events in PM1 A/B */
+
+    Status = AcpiHwRegisterWrite (ACPI_REGISTER_PM1_STATUS,
+        ACPI_BITMASK_ALL_FIXED_STATUS);
+
+    AcpiOsReleaseLock (AcpiGbl_HardwareLock, LockFlags);
+
+    if (ACPI_FAILURE (Status))
+    {
+        goto Exit;
+    }
+
+    /* Clear the GPE Bits in all GPE registers in all GPE blocks */
+
+    Status = AcpiEvWalkGpeList (AcpiHwClearGpeBlock, NULL);
+
+Exit:
+    return_ACPI_STATUS (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiHwGetBitRegisterInfo
+ *
+ * PARAMETERS:  RegisterId          - Index of ACPI Register to access
+ *
+ * RETURN:      The bitmask to be used when accessing the register
+ *
+ * DESCRIPTION: Map RegisterId into a register bitmask.
+ *
+ ******************************************************************************/
+
+ACPI_BIT_REGISTER_INFO *
+AcpiHwGetBitRegisterInfo (
+    UINT32                  RegisterId)
+{
+    ACPI_FUNCTION_ENTRY ();
+
+
+    if (RegisterId > ACPI_BITREG_MAX)
+    {
+        ACPI_ERROR ((AE_INFO, "Invalid BitRegister ID: 0x%X", RegisterId));
+        return (NULL);
+    }
+
+    return (&AcpiGbl_BitRegisterInfo[RegisterId]);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwWritePm1Control
+ *
+ * PARAMETERS:  Pm1aControl         - Value to be written to PM1A control
+ *              Pm1bControl         - Value to be written to PM1B control
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Write the PM1 A/B control registers. These registers are
+ *              different than the PM1 A/B status and enable registers
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
  *              in that different values can be written to the A/B registers.
  *              Most notably, the SLP_TYP bits can be different, as per the
  *              values returned from the _Sx predefined methods.

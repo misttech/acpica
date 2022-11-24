@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -147,6 +148,158 @@ AcpiNsRootInitialize (
         }
 
         ACPI_COPY_NAMESEG (NewNode->Name.Ascii, InitVal->Name);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "amlcode.h"
+#include "acnamesp.h"
+#include "acdispat.h"
+
+#ifdef ACPI_ASL_COMPILER
+    #include "acdisasm.h"
+#endif
+
+#define _COMPONENT          ACPI_NAMESPACE
+        ACPI_MODULE_NAME    ("nsaccess")
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsRootInitialize
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Allocate and initialize the default root named objects
+ *
+ * MUTEX:       Locks namespace for entire execution
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiNsRootInitialize (
+    void)
+{
+    ACPI_STATUS                 Status;
+    const ACPI_PREDEFINED_NAMES *InitVal = NULL;
+    ACPI_NAMESPACE_NODE         *NewNode;
+    ACPI_NAMESPACE_NODE         *PrevNode = NULL;
+    ACPI_OPERAND_OBJECT         *ObjDesc;
+    ACPI_STRING                 Val = NULL;
+
+
+    ACPI_FUNCTION_TRACE (NsRootInitialize);
+
+
+    Status = AcpiUtAcquireMutex (ACPI_MTX_NAMESPACE);
+    if (ACPI_FAILURE (Status))
+    {
+        return_ACPI_STATUS (Status);
+    }
+
+    /*
+     * The global root ptr is initially NULL, so a non-NULL value indicates
+     * that AcpiNsRootInitialize() has already been called; just return.
+     */
+    if (AcpiGbl_RootNode)
+    {
+        Status = AE_OK;
+        goto UnlockAndExit;
+    }
+
+    /*
+     * Tell the rest of the subsystem that the root is initialized
+     * (This is OK because the namespace is locked)
+     */
+    AcpiGbl_RootNode = &AcpiGbl_RootNodeStruct;
+
+    /* Enter the predefined names in the name table */
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
+        "Entering predefined entries into namespace\n"));
+
+    /*
+     * Create the initial (default) namespace.
+     * This namespace looks like something similar to this:
+     *
+     *   ACPI Namespace (from Namespace Root):
+     *    0  _GPE Scope        00203160 00
+     *    0  _PR_ Scope        002031D0 00
+     *    0  _SB_ Device       00203240 00 Notify Object: 0020ADD8
+     *    0  _SI_ Scope        002032B0 00
+     *    0  _TZ_ Device       00203320 00
+     *    0  _REV Integer      00203390 00 = 0000000000000002
+     *    0  _OS_ String       00203488 00 Len 14 "Microsoft Windows NT"
+     *    0  _GL_ Mutex        00203580 00 Object 002035F0
+     *    0  _OSI Method       00203678 00 Args 1 Len 0000 Aml 00000000
+     */
+    for (InitVal = AcpiGbl_PreDefinedNames; InitVal->Name; InitVal++)
+    {
+        Status = AE_OK;
+
+        /* _OSI is optional for now, will be permanent later */
+
+        if (!strcmp (InitVal->Name, "_OSI") && !AcpiGbl_CreateOsiMethod)
+        {
+            continue;
+        }
+
+        /*
+         * Create, init, and link the new predefined name
+         * Note: No need to use AcpiNsLookup here because all the
+         * predefined names are at the root level. It is much easier to
+         * just create and link the new node(s) here.
+         */
+        NewNode = AcpiNsCreateNode (*ACPI_CAST_PTR (UINT32, InitVal->Name));
+        if (!NewNode)
+        {
+            Status = AE_NO_MEMORY;
+            goto UnlockAndExit;
+        }
+
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
         NewNode->DescriptorType = ACPI_DESC_TYPE_NAMED;
         NewNode->Type = InitVal->Type;
 

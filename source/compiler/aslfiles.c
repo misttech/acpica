@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -725,6 +726,737 @@ ErrorExit:
  * DESCRIPTION: Open the specified input file, and save the directory path to
  *              the file so that include files can be opened in
  *              the same directory.
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "acapps.h"
+
+#define _COMPONENT          ACPI_COMPILER
+        ACPI_MODULE_NAME    ("aslfiles")
+
+/* Local prototypes */
+
+static FILE *
+FlOpenIncludeWithPrefix (
+    char                    *PrefixDir,
+    ACPI_PARSE_OBJECT       *Op,
+    char                    *Filename);
+
+static BOOLEAN
+FlInputFileExists (
+    char                    *InputFilename);
+
+#ifdef ACPI_OBSOLETE_FUNCTIONS
+ACPI_STATUS
+FlParseInputPathname (
+    char                    *InputFilename);
+#endif
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlInitOneFile
+ *
+ * PARAMETERS:  InputFilename       - The user-specified ASL source file to be
+ *                                    compiled
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Initialize global file structure for one input file. This file
+ *              structure contains references to input, output, debugging, and
+ *              other miscellaneous files that are associated for a single
+ *              input ASL file.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+FlInitOneFile (
+    char                    *InputFilename)
+{
+    UINT32                  i;
+    ASL_GLOBAL_FILE_NODE    *NewFileNode;
+
+
+    if (FlInputFileExists (InputFilename))
+    {
+        AslError (ASL_ERROR, ASL_MSG_DUPLICATE_INPUT_FILE, NULL, InputFilename);
+        return (AE_ALREADY_EXISTS);
+    }
+
+    NewFileNode = ACPI_CAST_PTR (ASL_GLOBAL_FILE_NODE,
+        UtLocalCacheCalloc (sizeof (ASL_GLOBAL_FILE_NODE)));
+
+    NewFileNode->ParserErrorDetected = FALSE;
+    NewFileNode->Next = AslGbl_FilesList;
+
+    AslGbl_FilesList = NewFileNode;
+    AslGbl_Files = NewFileNode->Files;
+
+    for (i = 0; i < ASL_NUM_FILES; i++)
+    {
+        AslGbl_Files[i].Handle = NULL;
+        AslGbl_Files[i].Filename = NULL;
+    }
+
+    AslGbl_Files[ASL_FILE_STDOUT].Handle   = stdout;
+    AslGbl_Files[ASL_FILE_STDOUT].Filename = "STDOUT";
+
+    if (AslGbl_VerboseErrors)
+    {
+        AslGbl_Files[ASL_FILE_STDERR].Handle = stderr;
+    }
+    else
+    {
+        AslGbl_Files[ASL_FILE_STDERR].Handle = stdout;
+    }
+
+    AslGbl_Files[ASL_FILE_STDERR].Filename = "STDERR";
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlInputFileExists
+ *
+ * PARAMETERS:  Filename       - File name to be searched
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Returns true if the file name already exists.
+ *
+ ******************************************************************************/
+
+static BOOLEAN
+FlInputFileExists (
+    char                    *Filename)
+{
+    ASL_GLOBAL_FILE_NODE    *Current = AslGbl_FilesList;
+
+
+    while (Current)
+    {
+        if (!strcmp (Filename, Current->Files[ASL_FILE_INPUT].Filename))
+        {
+            return (TRUE);
+        }
+
+        Current = Current->Next;
+    }
+
+    return (FALSE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlSwitchFileSet
+ *
+ * PARAMETERS:  Op        - Parse node for the LINE asl statement
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Set the current line number
+ *
+ ******************************************************************************/
+
+ASL_FILE_SWITCH_STATUS
+FlSwitchFileSet (
+    char                    *InputFilename)
+{
+    ASL_GLOBAL_FILE_NODE    *Current = AslGbl_FilesList;
+    char                    *PrevFilename = Current->Files[ASL_FILE_INPUT].Filename;
+
+
+    while (Current)
+    {
+        if (!strcmp(Current->Files[ASL_FILE_INPUT].Filename, InputFilename))
+        {
+            AslGbl_Files = Current->Files;
+            AslGbl_TableSignature = Current->TableSignature;
+            AslGbl_TableId = Current->TableId;
+
+            if (!strcmp (InputFilename, PrevFilename))
+            {
+                return (SWITCH_TO_SAME_FILE);
+            }
+            else
+            {
+                return (SWITCH_TO_DIFFERENT_FILE);
+            }
+        }
+
+        Current = Current->Next;
+    }
+
+    return (FILE_NOT_FOUND);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlGetFileHandle
+ *
+ * PARAMETERS:  OutFileId       - denotes file type of output handle
+ *              InFileId        - denotes file type of the input Filename
+ *              Filename
+ *
+ * RETURN:      File handle
+ *
+ * DESCRIPTION: Get the file handle for a particular filename/FileId. This
+ *              function also allows the caller to specify the file Id of the
+ *              desired type.
+ *
+ ******************************************************************************/
+
+FILE *
+FlGetFileHandle (
+    UINT32                  OutFileId,
+    UINT32                  InFileId,
+    char                    *Filename)
+{
+    ASL_GLOBAL_FILE_NODE    *Current = AslGbl_FilesList;
+
+
+    if (!Filename)
+    {
+        return (NULL);
+    }
+
+    while (Current)
+    {
+        if (!strcmp (Current->Files[InFileId].Filename, Filename))
+        {
+            return (Current->Files[OutFileId].Handle);
+        }
+
+        Current = Current->Next;
+    }
+
+    return (NULL);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlGetFileNode
+ *
+ * PARAMETERS:  FileId        - File type (ID) of the input Filename
+ *              Filename      - File to search for
+ *
+ * RETURN:      A global file node
+ *
+ * DESCRIPTION: Get the file node for a particular filename/FileId.
+ *
+ ******************************************************************************/
+
+ASL_GLOBAL_FILE_NODE *
+FlGetFileNode (
+    UINT32                  FileId,
+    char                    *Filename)
+{
+    ASL_GLOBAL_FILE_NODE    *Current = AslGbl_FilesList;
+
+
+    if (!Filename)
+    {
+        return (NULL);
+    }
+
+    while (Current)
+    {
+        if (!strcmp (Current->Files[FileId].Filename, Filename))
+        {
+            return (Current);
+        }
+
+        Current = Current->Next;
+    }
+
+    return (NULL);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlGetCurrentFileNode
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Global file node
+ *
+ * DESCRIPTION: Get the current input file node
+ *
+ ******************************************************************************/
+
+ASL_GLOBAL_FILE_NODE *
+FlGetCurrentFileNode (
+    void)
+{
+    ASL_GLOBAL_FILE_NODE    *FileNode =
+        FlGetFileNode (ASL_FILE_INPUT,AslGbl_Files[ASL_FILE_INPUT].Filename);
+
+
+    if (!FileNode)
+    {
+        /*
+         * If the current file node does not exist after initializing the file
+         * node structures, something went wrong and this is an unrecoverable
+         * condition.
+         */
+        FlFileError (ASL_FILE_INPUT, ASL_MSG_COMPILER_INTERNAL);
+        AslAbort ();
+    }
+
+    return (FileNode);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlSetLineNumber
+ *
+ * PARAMETERS:  Op        - Parse node for the LINE asl statement
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Set the current line number
+ *
+ ******************************************************************************/
+
+void
+FlSetLineNumber (
+    UINT32                  LineNumber)
+{
+
+    DbgPrint (ASL_PARSE_OUTPUT, "\n#line: New line number %u (old %u)\n",
+         LineNumber, AslGbl_LogicalLineNumber);
+
+    AslGbl_CurrentLineNumber = LineNumber;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlSetFilename
+ *
+ * PARAMETERS:  Op        - Parse node for the LINE asl statement
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Set the current filename
+ *
+ ******************************************************************************/
+
+void
+FlSetFilename (
+    char                    *Filename)
+{
+
+    DbgPrint (ASL_PARSE_OUTPUT, "\n#line: New filename %s (old %s)\n",
+         Filename, AslGbl_Files[ASL_FILE_INPUT].Filename);
+
+    /* No need to free any existing filename */
+
+    AslGbl_Files[ASL_FILE_INPUT].Filename = Filename;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlAddIncludeDirectory
+ *
+ * PARAMETERS:  Dir             - Directory pathname string
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Add a directory the list of include prefix directories.
+ *
+ ******************************************************************************/
+
+void
+FlAddIncludeDirectory (
+    char                    *Dir)
+{
+    ASL_INCLUDE_DIR         *NewDir;
+    ASL_INCLUDE_DIR         *NextDir;
+    ASL_INCLUDE_DIR         *PrevDir = NULL;
+    UINT32                  NeedsSeparator = 0;
+    size_t                  DirLength;
+
+
+    DirLength = strlen (Dir);
+    if (!DirLength)
+    {
+        return;
+    }
+
+    /* Make sure that the pathname ends with a path separator */
+
+    if ((Dir[DirLength-1] != '/') &&
+        (Dir[DirLength-1] != '\\'))
+    {
+        NeedsSeparator = 1;
+    }
+
+    NewDir = ACPI_CAST_PTR (ASL_INCLUDE_DIR,
+        UtLocalCacheCalloc (sizeof (ASL_INCLUDE_DIR)));
+    NewDir->Dir = UtLocalCacheCalloc (DirLength + 1 + NeedsSeparator);
+    strcpy (NewDir->Dir, Dir);
+    if (NeedsSeparator)
+    {
+        strcat (NewDir->Dir, "/");
+    }
+
+    /*
+     * Preserve command line ordering of -I options by adding new elements
+     * at the end of the list
+     */
+    NextDir = AslGbl_IncludeDirList;
+    while (NextDir)
+    {
+        PrevDir = NextDir;
+        NextDir = NextDir->Next;
+    }
+
+    if (PrevDir)
+    {
+        PrevDir->Next = NewDir;
+    }
+    else
+    {
+        AslGbl_IncludeDirList = NewDir;
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlMergePathnames
+ *
+ * PARAMETERS:  PrefixDir       - Prefix directory pathname. Can be NULL or
+ *                                a zero length string.
+ *              FilePathname    - The include filename from the source ASL.
+ *
+ * RETURN:      Merged pathname string
+ *
+ * DESCRIPTION: Merge two pathnames that (probably) have common elements, to
+ *              arrive at a minimal length string. Merge can occur if the
+ *              FilePathname is relative to the PrefixDir.
+ *
+ ******************************************************************************/
+
+char *
+FlMergePathnames (
+    char                    *PrefixDir,
+    char                    *FilePathname)
+{
+    char                    *CommonPath;
+    char                    *Pathname;
+    char                    *LastElement;
+
+
+    DbgPrint (ASL_PARSE_OUTPUT, "Include: Prefix path - \"%s\"\n"
+        "Include: FilePathname - \"%s\"\n",
+         PrefixDir, FilePathname);
+
+    /*
+     * If there is no prefix directory or if the file pathname is absolute,
+     * just return the original file pathname
+     */
+    if (!PrefixDir || (!*PrefixDir) ||
+        (*FilePathname == '/') ||
+         (FilePathname[1] == ':'))
+    {
+        Pathname = UtLocalCacheCalloc (strlen (FilePathname) + 1);
+        strcpy (Pathname, FilePathname);
+        goto ConvertBackslashes;
+    }
+
+    /* Need a local copy of the prefix directory path */
+
+    CommonPath = UtLocalCacheCalloc (strlen (PrefixDir) + 1);
+    strcpy (CommonPath, PrefixDir);
+
+    /*
+     * Walk forward through the file path, and simultaneously backward
+     * through the prefix directory path until there are no more
+     * relative references at the start of the file path.
+     */
+    while (*FilePathname && (!strncmp (FilePathname, "../", 3)))
+    {
+        /* Remove last element of the prefix directory path */
+
+        LastElement = strrchr (CommonPath, '/');
+        if (!LastElement)
+        {
+            goto ConcatenatePaths;
+        }
+
+        *LastElement = 0;   /* Terminate CommonPath string */
+        FilePathname += 3;  /* Point to next path element */
+    }
+
+    /*
+     * Remove the last element of the prefix directory path (it is the same as
+     * the first element of the file pathname), and build the final merged
+     * pathname.
+     */
+    LastElement = strrchr (CommonPath, '/');
+    if (LastElement)
+    {
+        *LastElement = 0;
+    }
+
+    /* Build the final merged pathname */
+
+ConcatenatePaths:
+    Pathname = UtLocalCacheCalloc (
+        strlen (CommonPath) + strlen (FilePathname) + 2);
+    if (LastElement && *CommonPath)
+    {
+        strcpy (Pathname, CommonPath);
+        strcat (Pathname, "/");
+    }
+    strcat (Pathname, FilePathname);
+
+    /* Convert all backslashes to normal slashes */
+
+ConvertBackslashes:
+    UtConvertBackslashes (Pathname);
+
+    DbgPrint (ASL_PARSE_OUTPUT, "Include: Merged Pathname - \"%s\"\n",
+         Pathname);
+    return (Pathname);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlOpenIncludeWithPrefix
+ *
+ * PARAMETERS:  PrefixDir       - Prefix directory pathname. Can be a zero
+ *                                length string.
+ *              Filename        - The include filename from the source ASL.
+ *
+ * RETURN:      Valid file descriptor if successful. Null otherwise.
+ *
+ * DESCRIPTION: Open an include file and push it on the input file stack.
+ *
+ ******************************************************************************/
+
+static FILE *
+FlOpenIncludeWithPrefix (
+    char                    *PrefixDir,
+    ACPI_PARSE_OBJECT       *Op,
+    char                    *Filename)
+{
+    FILE                    *IncludeFile;
+    char                    *Pathname;
+    UINT32                  OriginalLineNumber;
+
+
+    /* Build the full pathname to the file */
+
+    Pathname = FlMergePathnames (PrefixDir, Filename);
+
+    DbgPrint (ASL_PARSE_OUTPUT, "Include: Opening file - \"%s\"\n\n",
+        Pathname);
+
+    /* Attempt to open the file, push if successful */
+
+    IncludeFile = fopen (Pathname, "r");
+    if (!IncludeFile)
+    {
+        return (NULL);
+    }
+
+    /*
+     * Check the entire include file for any # preprocessor directives.
+     * This is because there may be some confusion between the #include
+     * preprocessor directive and the ASL Include statement. A file included
+     * by the ASL include cannot contain preprocessor directives because
+     * the preprocessor has already run by the time the ASL include is
+     * recognized (by the compiler, not the preprocessor.)
+     *
+     * Note: DtGetNextLine strips/ignores comments.
+     * Save current line number since DtGetNextLine modifies it.
+     */
+    AslGbl_CurrentLineNumber--;
+    OriginalLineNumber = AslGbl_CurrentLineNumber;
+
+    while (DtGetNextLine (IncludeFile, DT_ALLOW_MULTILINE_QUOTES) != ASL_EOF)
+    {
+        if (AslGbl_CurrentLineBuffer[0] == '#')
+        {
+            AslError (ASL_ERROR, ASL_MSG_INCLUDE_FILE,
+                Op, "use #include instead");
+        }
+    }
+
+    AslGbl_CurrentLineNumber = OriginalLineNumber;
+
+    /* Must seek back to the start of the file */
+
+    fseek (IncludeFile, 0, SEEK_SET);
+
+    /* Push the include file on the open input file stack */
+
+    AslPushInputFileStack (IncludeFile, Pathname);
+    return (IncludeFile);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlOpenIncludeFile
+ *
+ * PARAMETERS:  Op        - Parse node for the INCLUDE ASL statement
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Open an include file and push it on the input file stack.
+ *
+ ******************************************************************************/
+
+void
+FlOpenIncludeFile (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    FILE                    *IncludeFile;
+    ASL_INCLUDE_DIR         *NextDir;
+
+
+    /* Op must be valid */
+
+    if (!Op)
+    {
+        AslCommonError (ASL_ERROR, ASL_MSG_INCLUDE_FILE_OPEN,
+            AslGbl_CurrentLineNumber, AslGbl_LogicalLineNumber,
+            AslGbl_InputByteCount, AslGbl_CurrentColumn,
+            AslGbl_Files[ASL_FILE_INPUT].Filename, " - Null parse node");
+
+        return;
+    }
+
+    /*
+     * Flush out the "include ()" statement on this line, start
+     * the actual include file on the next line
+     */
+    AslResetCurrentLineBuffer ();
+    FlPrintFile (ASL_FILE_SOURCE_OUTPUT, "\n");
+    AslGbl_CurrentLineOffset++;
+
+
+    /* Attempt to open the include file */
+
+    /* If the file specifies an absolute path, just open it */
+
+    if ((Op->Asl.Value.String[0] == '/')  ||
+        (Op->Asl.Value.String[0] == '\\') ||
+        (Op->Asl.Value.String[1] == ':'))
+    {
+        IncludeFile = FlOpenIncludeWithPrefix ("", Op, Op->Asl.Value.String);
+        if (!IncludeFile)
+        {
+            goto ErrorExit;
+        }
+        return;
+    }
+
+    /*
+     * The include filename is not an absolute path.
+     *
+     * First, search for the file within the "local" directory -- meaning
+     * the same directory that contains the source file.
+     *
+     * Construct the file pathname from the global directory name.
+     */
+    IncludeFile = FlOpenIncludeWithPrefix (
+        AslGbl_DirectoryPath, Op, Op->Asl.Value.String);
+    if (IncludeFile)
+    {
+        return;
+    }
+
+    /*
+     * Second, search for the file within the (possibly multiple) directories
+     * specified by the -I option on the command line.
+     */
+    NextDir = AslGbl_IncludeDirList;
+    while (NextDir)
+    {
+        IncludeFile = FlOpenIncludeWithPrefix (
+            NextDir->Dir, Op, Op->Asl.Value.String);
+        if (IncludeFile)
+        {
+            return;
+        }
+
+        NextDir = NextDir->Next;
+    }
+
+    /* We could not open the include file after trying very hard */
+
+ErrorExit:
+    sprintf (AslGbl_MsgBuffer, "%s, %s", Op->Asl.Value.String, strerror (errno));
+    AslError (ASL_ERROR, ASL_MSG_INCLUDE_FILE_OPEN, Op, AslGbl_MsgBuffer);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    FlOpenInputFile
+ *
+ * PARAMETERS:  InputFilename       - The user-specified ASL source file to be
+ *                                    compiled
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Open the specified input file, and save the directory path to
+ *              the file so that include files can be opened in the same
+ *              directory. NOTE: File is opened in text mode.
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
  *
  ******************************************************************************/
 

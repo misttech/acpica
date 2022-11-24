@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -405,6 +406,417 @@ AnOperandTypecheckWalkEnd (
                 }
 
             /* Fallthrough */
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "aslcompiler.y.h"
+#include "acparser.h"
+#include "amlcode.h"
+
+
+#define _COMPONENT          ACPI_COMPILER
+        ACPI_MODULE_NAME    ("aslwalks")
+
+
+/* Local prototypes */
+
+static void
+AnAnalyzeStoreOperator (
+    ACPI_PARSE_OBJECT       *Op);
+
+static BOOLEAN
+AnIsValidBufferConstant (
+    ACPI_PARSE_OBJECT       *Op);
+
+static void
+AnValidateCreateBufferField (
+    ACPI_PARSE_OBJECT       *CreateBufferFieldOp);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnMethodTypingWalkEnd
+ *
+ * PARAMETERS:  ASL_WALK_CALLBACK
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Ascending callback for typing walk. Complete the method
+ *              return analysis. Check methods for:
+ *              1) Initialized local variables
+ *              2) Valid arguments
+ *              3) Return types
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AnMethodTypingWalkEnd (
+    ACPI_PARSE_OBJECT       *Op,
+    UINT32                  Level,
+    void                    *Context)
+{
+    UINT32                  ThisOpBtype;
+
+
+    switch (Op->Asl.ParseOpcode)
+    {
+    case PARSEOP_METHOD:
+
+        Op->Asl.CompileFlags |= OP_METHOD_TYPED;
+        break;
+
+    case PARSEOP_RETURN:
+
+        if ((Op->Asl.Child) &&
+            (Op->Asl.Child->Asl.ParseOpcode != PARSEOP_DEFAULT_ARG))
+        {
+            ThisOpBtype = AnGetBtype (Op->Asl.Child);
+
+            if ((Op->Asl.Child->Asl.ParseOpcode == PARSEOP_METHODCALL) &&
+                (ThisOpBtype == (ACPI_UINT32_MAX -1)))
+            {
+                /*
+                 * The called method is untyped at this time (typically a
+                 * forward reference).
+                 *
+                 * Check for a recursive method call first. Note: the
+                 * Child->Node will be null if the method has not been
+                 * resolved.
+                 */
+                if (Op->Asl.Child->Asl.Node &&
+                    (Op->Asl.ParentMethod != Op->Asl.Child->Asl.Node->Op))
+                {
+                    /* We must type the method here */
+
+                    TrWalkParseTree (Op->Asl.Child->Asl.Node->Op,
+                        ASL_WALK_VISIT_UPWARD, NULL,
+                        AnMethodTypingWalkEnd, NULL);
+
+                    ThisOpBtype = AnGetBtype (Op->Asl.Child);
+                }
+            }
+
+            /* Returns a value, save the value type */
+
+            if (Op->Asl.ParentMethod)
+            {
+                Op->Asl.ParentMethod->Asl.AcpiBtype |= ThisOpBtype;
+            }
+        }
+        break;
+
+    default:
+
+        break;
+    }
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnOperandTypecheckWalkEnd
+ *
+ * PARAMETERS:  ASL_WALK_CALLBACK
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Ascending callback for analysis walk. Complete method
+ *              return analysis.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AnOperandTypecheckWalkEnd (
+    ACPI_PARSE_OBJECT       *Op,
+    UINT32                  Level,
+    void                    *Context)
+{
+    const ACPI_OPCODE_INFO  *OpInfo;
+    UINT32                  RuntimeArgTypes;
+    UINT32                  RuntimeArgTypes2;
+    UINT32                  RequiredBtypes;
+    UINT32                  ThisNodeBtype;
+    UINT32                  CommonBtypes;
+    UINT32                  OpcodeClass;
+    ACPI_PARSE_OBJECT       *ArgOp;
+    UINT32                  ArgType;
+
+
+    switch (Op->Asl.AmlOpcode)
+    {
+    case AML_RAW_DATA_BYTE:
+    case AML_RAW_DATA_WORD:
+    case AML_RAW_DATA_DWORD:
+    case AML_RAW_DATA_QWORD:
+    case AML_RAW_DATA_BUFFER:
+    case AML_RAW_DATA_CHAIN:
+    case AML_PACKAGE_LENGTH:
+    case AML_UNASSIGNED_OPCODE:
+    case AML_DEFAULT_ARG_OP:
+
+        /* Ignore the internal (compiler-only) AML opcodes */
+
+        return (AE_OK);
+
+    default:
+
+        break;
+    }
+
+    OpInfo = AcpiPsGetOpcodeInfo (Op->Asl.AmlOpcode);
+    if (!OpInfo)
+    {
+        return (AE_OK);
+    }
+
+    ArgOp = Op->Asl.Child;
+    OpcodeClass = OpInfo->Class;
+    RuntimeArgTypes = OpInfo->RuntimeArgs;
+
+#ifdef ASL_ERROR_NAMED_OBJECT_IN_WHILE
+    /*
+     * Update 11/2008: In practice, we can't perform this check. A simple
+     * analysis is not sufficient. Also, it can cause errors when compiling
+     * disassembled code because of the way Switch operators are implemented
+     * (a While(One) loop with a named temp variable created within.)
+     */
+
+    /*
+     * If we are creating a named object, check if we are within a while loop
+     * by checking if the parent is a WHILE op. This is a simple analysis, but
+     * probably sufficient for many cases.
+     *
+     * Allow Scope(), Buffer(), and Package().
+     */
+    if (((OpcodeClass == AML_CLASS_NAMED_OBJECT) && (Op->Asl.AmlOpcode != AML_SCOPE_OP)) ||
+        ((OpcodeClass == AML_CLASS_CREATE) && (OpInfo->Flags & AML_NSNODE)))
+    {
+        if (Op->Asl.Parent->Asl.AmlOpcode == AML_WHILE_OP)
+        {
+            AslError (ASL_ERROR, ASL_MSG_NAMED_OBJECT_IN_WHILE, Op, NULL);
+        }
+    }
+#endif
+
+    /*
+     * Special case for control opcodes IF/RETURN/WHILE since they
+     * have no runtime arg list (at this time)
+     */
+    switch (Op->Asl.AmlOpcode)
+    {
+    case AML_IF_OP:
+    case AML_WHILE_OP:
+    case AML_RETURN_OP:
+
+        if (ArgOp->Asl.ParseOpcode == PARSEOP_METHODCALL)
+        {
+            /* Check for an internal method */
+
+            if (AnIsInternalMethod (ArgOp))
+            {
+                return (AE_OK);
+            }
+
+            /* The lone arg is a method call, check it */
+
+            RequiredBtypes = AnMapArgTypeToBtype (ARGI_INTEGER);
+            if (Op->Asl.AmlOpcode == AML_RETURN_OP)
+            {
+                RequiredBtypes = 0xFFFFFFFF;
+            }
+
+            ThisNodeBtype = AnGetBtype (ArgOp);
+            if (ThisNodeBtype == ACPI_UINT32_MAX)
+            {
+                return (AE_OK);
+            }
+
+            AnCheckMethodReturnValue (Op, OpInfo, ArgOp,
+                RequiredBtypes, ThisNodeBtype);
+        }
+        return (AE_OK);
+
+    case AML_EXTERNAL_OP:
+        /*
+         * Not really a "runtime" opcode since it used by disassembler only.
+         * The parser will find any issues with the operands.
+         */
+        return (AE_OK);
+
+    default:
+
+        break;
+    }
+
+    /* Ignore the non-executable opcodes */
+
+    if (RuntimeArgTypes == ARGI_INVALID_OPCODE)
+    {
+        return (AE_OK);
+    }
+
+    /*
+     * Special handling for certain opcodes.
+     */
+    switch (Op->Asl.AmlOpcode)
+    {
+        /* BankField has one TermArg */
+
+    case AML_BANK_FIELD_OP:
+
+        OpcodeClass = AML_CLASS_EXECUTE;
+        ArgOp = ArgOp->Asl.Next;
+        ArgOp = ArgOp->Asl.Next;
+        break;
+
+        /* Operation Region has 2 TermArgs */
+
+    case AML_REGION_OP:
+
+        OpcodeClass = AML_CLASS_EXECUTE;
+        ArgOp = ArgOp->Asl.Next;
+        ArgOp = ArgOp->Asl.Next;
+        break;
+
+        /* DataTableRegion has 3 TermArgs */
+
+    case AML_DATA_REGION_OP:
+
+        OpcodeClass = AML_CLASS_EXECUTE;
+        ArgOp = ArgOp->Asl.Next;
+        break;
+
+        /* Buffers/Packages have a length that is a TermArg */
+
+    case AML_BUFFER_OP:
+    case AML_PACKAGE_OP:
+    case AML_VARIABLE_PACKAGE_OP:
+
+            /* If length is a constant, we are done */
+
+        if ((ArgOp->Asl.ParseOpcode == PARSEOP_INTEGER) ||
+            (ArgOp->Asl.ParseOpcode == PARSEOP_RAW_DATA))
+        {
+            return (AE_OK);
+        }
+        break;
+
+        /* Store can write any object to the Debug object */
+
+    case AML_STORE_OP:
+        /*
+         * If this is a Store() to the Debug object, we don't need
+         * to perform any further validation -- because a Store of
+         * any object to Debug is permitted and supported.
+         */
+        if (ArgOp->Asl.Next->Asl.AmlOpcode == AML_DEBUG_OP)
+        {
+            return (AE_OK);
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    switch (OpcodeClass)
+    {
+    case AML_CLASS_EXECUTE:
+    case AML_CLASS_CREATE:
+    case AML_CLASS_CONTROL:
+    case AML_CLASS_RETURN_VALUE:
+
+        /* Reverse the runtime argument list */
+
+        RuntimeArgTypes2 = 0;
+        while ((ArgType = GET_CURRENT_ARG_TYPE (RuntimeArgTypes)))
+        {
+            RuntimeArgTypes2 <<= ARG_TYPE_WIDTH;
+            RuntimeArgTypes2 |= ArgType;
+            INCREMENT_ARG_LIST (RuntimeArgTypes);
+        }
+
+        /* Typecheck each argument */
+
+        while ((ArgType = GET_CURRENT_ARG_TYPE (RuntimeArgTypes2)))
+        {
+            /* Get the required type(s) for the argument */
+
+            RequiredBtypes = AnMapArgTypeToBtype (ArgType);
+
+            if (!ArgOp)
+            {
+                AslError (ASL_ERROR, ASL_MSG_COMPILER_INTERNAL, Op,
+                    "Null ArgOp in argument loop");
+                AslAbort ();
+            }
+
+            /* Get the actual type of the argument */
+
+            ThisNodeBtype = AnGetBtype (ArgOp);
+            if (ThisNodeBtype == ACPI_UINT32_MAX)
+            {
+                goto NextArgument;
+            }
+
+            /* Examine the arg based on the required type of the arg */
+
+            switch (ArgType)
+            {
+            case ARGI_TARGETREF:
+
+                if (ArgOp->Asl.ParseOpcode == PARSEOP_ZERO)
+                {
+                    /* ZERO is the placeholder for "don't store result" */
+
+                    ThisNodeBtype = RequiredBtypes;
+                    break;
+                }
+
+                ACPI_FALLTHROUGH;
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
             case ARGI_STORE_TARGET:
 

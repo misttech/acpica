@@ -7,6 +7,7 @@ NoEcho('
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -120,6 +121,147 @@ ResourceMacroTerm
     | WordIOTerm                    {}
     | WordSpaceTerm                 {}
     ;
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+')
+
+
+/*******************************************************************************
+ *
+ * ASL Resource Template Terms
+ *
+ ******************************************************************************/
+
+/*
+ * Note: Create two default nodes to allow conversion to a Buffer AML opcode
+ * Also, insert the EndTag at the end of the template.
+ */
+ResourceTemplateTerm
+    : PARSEOP_RESOURCETEMPLATE      {COMMENT_CAPTURE_OFF;}
+        OptionalParentheses
+        '{'
+        ResourceMacroList '}'       {$$ = TrCreateOp (PARSEOP_RESOURCETEMPLATE,4,
+                                          TrCreateLeafOp (PARSEOP_DEFAULT_ARG),
+                                          TrCreateLeafOp (PARSEOP_DEFAULT_ARG),
+                                          $5,
+                                          TrCreateLeafOp (PARSEOP_ENDTAG));
+                                     COMMENT_CAPTURE_ON;}
+    ;
+
+OptionalParentheses
+    :                               {$$ = NULL;}
+    | PARSEOP_OPEN_PAREN
+        PARSEOP_CLOSE_PAREN         {$$ = NULL;}
+    ;
+
+ResourceMacroList
+    :                               {$$ = NULL;}
+    | ResourceMacroList
+        ResourceMacroTerm           {$$ = TrLinkPeerOp ($1,$2);}
+    ;
+
+ResourceMacroTerm
+    : Csi2SerialBusTerm             {}
+    | DMATerm                       {}
+    | DWordIOTerm                   {}
+    | DWordMemoryTerm               {}
+    | DWordSpaceTerm                {}
+    | EndDependentFnTerm            {}
+    | ExtendedIOTerm                {}
+    | ExtendedMemoryTerm            {}
+    | ExtendedSpaceTerm             {}
+    | FixedDmaTerm                  {}
+    | FixedIOTerm                   {}
+    | GpioIntTerm                   {}
+    | GpioIoTerm                    {}
+    | I2cSerialBusTerm              {}
+    | I2cSerialBusTermV2            {}
+    | InterruptTerm                 {}
+    | IOTerm                        {}
+    | IRQNoFlagsTerm                {}
+    | IRQTerm                       {}
+    | Memory24Term                  {}
+    | Memory32FixedTerm             {}
+    | Memory32Term                  {}
+    | PinConfigTerm                 {}
+    | PinFunctionTerm               {}
+    | PinGroupTerm                  {}
+    | PinGroupConfigTerm            {}
+    | PinGroupFunctionTerm          {}
+    | QWordIOTerm                   {}
+    | QWordMemoryTerm               {}
+    | QWordSpaceTerm                {}
+    | RegisterTerm                  {}
+    | SpiSerialBusTerm              {}
+    | SpiSerialBusTermV2            {}
+    | StartDependentFnNoPriTerm     {}
+    | StartDependentFnTerm          {}
+    | UartSerialBusTerm             {}
+    | UartSerialBusTermV2           {}
+    | VendorLongTerm                {}
+    | VendorShortTerm               {}
+    | WordBusNumberTerm             {}
+    | WordIOTerm                    {}
+    | WordSpaceTerm                 {}
+    ;
+
+Csi2SerialBusTerm
+    : PARSEOP_CSI2_SERIALBUS
+        PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_CSI2_SERIALBUS);}
+        OptionalSlaveMode_First     {UtCheckIntegerRange ($4, 0x00, 0x01);} /* 04: SlaveMode */
+        ',' ByteConstExpr           {UtCheckIntegerRange ($7, 0x00, 0x03);} /* 07: PhyType */
+        OptionalByteConstExpr       {UtCheckIntegerRange ($9, 0x00, 0xFC);} /* 09: LocalPortInstance */
+        ',' StringData              /* 12: ResourceSource */
+        ',' ByteConstExpr           /* 14: ResourceSourceIndex */
+        OptionalResourceType        /* 15; ResourceType (ResourceUsage) */
+        OptionalNameString          /* 16: DescriptorName */
+        OptionalBuffer_Last         /* 17: VendorData */
+        PARSEOP_CLOSE_PAREN         {$$ = TrLinkOpChildren ($<n>3,8,
+                                        $4,$7,$9,$12,$14,$15,$16,$17);}
+    | PARSEOP_CSI2_SERIALBUS
+        PARSEOP_OPEN_PAREN
+        error PARSEOP_CLOSE_PAREN   {$$ = AslDoError(); yyclearin;}
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
 DMATerm
     : PARSEOP_DMA

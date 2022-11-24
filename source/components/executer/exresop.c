@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -311,6 +312,323 @@ AcpiExResolveOperands (
              * case below
              */
             /*lint -fallthrough */
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "amlcode.h"
+#include "acparser.h"
+#include "acinterp.h"
+#include "acnamesp.h"
+
+
+#define _COMPONENT          ACPI_EXECUTER
+        ACPI_MODULE_NAME    ("exresop")
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiExCheckObjectType (
+    ACPI_OBJECT_TYPE        TypeNeeded,
+    ACPI_OBJECT_TYPE        ThisType,
+    void                    *Object);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiExCheckObjectType
+ *
+ * PARAMETERS:  TypeNeeded          Object type needed
+ *              ThisType            Actual object type
+ *              Object              Object pointer
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Check required type against actual type
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiExCheckObjectType (
+    ACPI_OBJECT_TYPE        TypeNeeded,
+    ACPI_OBJECT_TYPE        ThisType,
+    void                    *Object)
+{
+    ACPI_FUNCTION_ENTRY ();
+
+
+    if (TypeNeeded == ACPI_TYPE_ANY)
+    {
+        /* All types OK, so we don't perform any typechecks */
+
+        return (AE_OK);
+    }
+
+    if (TypeNeeded == ACPI_TYPE_LOCAL_REFERENCE)
+    {
+        /*
+         * Allow the AML "Constant" opcodes (Zero, One, etc.) to be reference
+         * objects and thus allow them to be targets. (As per the ACPI
+         * specification, a store to a constant is a noop.)
+         */
+        if ((ThisType == ACPI_TYPE_INTEGER) &&
+            (((ACPI_OPERAND_OBJECT *) Object)->Common.Flags &
+                AOPOBJ_AML_CONSTANT))
+        {
+            return (AE_OK);
+        }
+    }
+
+    if (TypeNeeded != ThisType)
+    {
+        ACPI_ERROR ((AE_INFO,
+            "Needed type [%s], found [%s] %p",
+            AcpiUtGetTypeName (TypeNeeded),
+            AcpiUtGetTypeName (ThisType), Object));
+
+        return (AE_AML_OPERAND_TYPE);
+    }
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiExResolveOperands
+ *
+ * PARAMETERS:  Opcode              - Opcode being interpreted
+ *              StackPtr            - Pointer to the operand stack to be
+ *                                    resolved
+ *              WalkState           - Current state
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Convert multiple input operands to the types required by the
+ *              target operator.
+ *
+ *      Each 5-bit group in ArgTypes represents one required
+ *      operand and indicates the required Type. The corresponding operand
+ *      will be converted to the required type if possible, otherwise we
+ *      abort with an exception.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiExResolveOperands (
+    UINT16                  Opcode,
+    ACPI_OPERAND_OBJECT     **StackPtr,
+    ACPI_WALK_STATE         *WalkState)
+{
+    ACPI_OPERAND_OBJECT     *ObjDesc;
+    ACPI_STATUS             Status = AE_OK;
+    UINT8                   ObjectType;
+    UINT32                  ArgTypes;
+    const ACPI_OPCODE_INFO  *OpInfo;
+    UINT32                  ThisArgType;
+    ACPI_OBJECT_TYPE        TypeNeeded;
+    UINT16                  TargetOp = 0;
+
+
+    ACPI_FUNCTION_TRACE_U32 (ExResolveOperands, Opcode);
+
+
+    OpInfo = AcpiPsGetOpcodeInfo (Opcode);
+    if (OpInfo->Class == AML_CLASS_UNKNOWN)
+    {
+        return_ACPI_STATUS (AE_AML_BAD_OPCODE);
+    }
+
+    ArgTypes = OpInfo->RuntimeArgs;
+    if (ArgTypes == ARGI_INVALID_OPCODE)
+    {
+        ACPI_ERROR ((AE_INFO, "Unknown AML opcode 0x%X",
+            Opcode));
+
+        return_ACPI_STATUS (AE_AML_INTERNAL);
+    }
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+        "Opcode %X [%s] RequiredOperandTypes=%8.8X\n",
+        Opcode, OpInfo->Name, ArgTypes));
+
+    /*
+     * Normal exit is with (ArgTypes == 0) at end of argument list.
+     * Function will return an exception from within the loop upon
+     * finding an entry which is not (or cannot be converted
+     * to) the required type; if stack underflows; or upon
+     * finding a NULL stack entry (which should not happen).
+     */
+    while (GET_CURRENT_ARG_TYPE (ArgTypes))
+    {
+        if (!StackPtr || !*StackPtr)
+        {
+            ACPI_ERROR ((AE_INFO, "Null stack entry at %p",
+                StackPtr));
+
+            return_ACPI_STATUS (AE_AML_INTERNAL);
+        }
+
+        /* Extract useful items */
+
+        ObjDesc = *StackPtr;
+
+        /* Decode the descriptor type */
+
+        switch (ACPI_GET_DESCRIPTOR_TYPE (ObjDesc))
+        {
+        case ACPI_DESC_TYPE_NAMED:
+
+            /* Namespace Node */
+
+            ObjectType = ((ACPI_NAMESPACE_NODE *) ObjDesc)->Type;
+
+            /*
+             * Resolve an alias object. The construction of these objects
+             * guarantees that there is only one level of alias indirection;
+             * thus, the attached object is always the aliased namespace node
+             */
+            if (ObjectType == ACPI_TYPE_LOCAL_ALIAS)
+            {
+                ObjDesc = AcpiNsGetAttachedObject (
+                    (ACPI_NAMESPACE_NODE *) ObjDesc);
+                *StackPtr = ObjDesc;
+                ObjectType = ((ACPI_NAMESPACE_NODE *) ObjDesc)->Type;
+            }
+            break;
+
+        case ACPI_DESC_TYPE_OPERAND:
+
+            /* ACPI internal object */
+
+            ObjectType = ObjDesc->Common.Type;
+
+            /* Check for bad ACPI_OBJECT_TYPE */
+
+            if (!AcpiUtValidObjectType (ObjectType))
+            {
+                ACPI_ERROR ((AE_INFO,
+                    "Bad operand object type [0x%X]", ObjectType));
+
+                return_ACPI_STATUS (AE_AML_OPERAND_TYPE);
+            }
+
+            if (ObjectType == (UINT8) ACPI_TYPE_LOCAL_REFERENCE)
+            {
+                /* Validate the Reference */
+
+                switch (ObjDesc->Reference.Class)
+                {
+                case ACPI_REFCLASS_DEBUG:
+
+                    TargetOp = AML_DEBUG_OP;
+
+                    ACPI_FALLTHROUGH;
+
+                case ACPI_REFCLASS_ARG:
+                case ACPI_REFCLASS_LOCAL:
+                case ACPI_REFCLASS_INDEX:
+                case ACPI_REFCLASS_REFOF:
+                case ACPI_REFCLASS_TABLE:    /* DdbHandle from LOAD_OP or LOAD_TABLE_OP */
+                case ACPI_REFCLASS_NAME:     /* Reference to a named object */
+
+                    ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+                        "Operand is a Reference, Class [%s] %2.2X\n",
+                        AcpiUtGetReferenceName (ObjDesc),
+                        ObjDesc->Reference.Class));
+                    break;
+
+                default:
+
+                    ACPI_ERROR ((AE_INFO,
+                        "Unknown Reference Class 0x%2.2X in %p",
+                        ObjDesc->Reference.Class, ObjDesc));
+
+                    return_ACPI_STATUS (AE_AML_OPERAND_TYPE);
+                }
+            }
+            break;
+
+        default:
+
+            /* Invalid descriptor */
+
+            ACPI_ERROR ((AE_INFO, "Invalid descriptor %p [%s]",
+                ObjDesc, AcpiUtGetDescriptorName (ObjDesc)));
+
+            return_ACPI_STATUS (AE_AML_OPERAND_TYPE);
+        }
+
+        /* Get one argument type, point to the next */
+
+        ThisArgType = GET_CURRENT_ARG_TYPE (ArgTypes);
+        INCREMENT_ARG_LIST (ArgTypes);
+
+        /*
+         * Handle cases where the object does not need to be
+         * resolved to a value
+         */
+        switch (ThisArgType)
+        {
+        case ARGI_REF_OR_STRING:        /* Can be a String or Reference */
+
+            if ((ACPI_GET_DESCRIPTOR_TYPE (ObjDesc) ==
+                ACPI_DESC_TYPE_OPERAND) &&
+                (ObjDesc->Common.Type == ACPI_TYPE_STRING))
+            {
+                /*
+                 * String found - the string references a named object and
+                 * must be resolved to a node
+                 */
+                goto NextOperand;
+            }
+
+            /*
+             * Else not a string - fall through to the normal Reference
+             * case below
+             */
+            ACPI_FALLTHROUGH;
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
         case ARGI_REFERENCE:            /* References: */
         case ARGI_INTEGER_REF:

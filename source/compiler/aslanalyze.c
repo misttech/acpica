@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -357,6 +358,377 @@ AnCheckMethodReturnValue (
 
             AslError (ASL_ERROR, ASL_MSG_INVALID_TYPE, ArgOp, AslGbl_MsgBuffer);
         }
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "aslcompiler.y.h"
+#include "acnamesp.h"
+#include <string.h>
+
+
+#define _COMPONENT          ACPI_COMPILER
+        ACPI_MODULE_NAME    ("aslanalyze")
+
+
+/* Local Prototypes */
+
+static ACPI_STATUS
+ApDeviceSubtreeWalk (
+    ACPI_PARSE_OBJECT       *Op,
+    UINT32                  Level,
+    void                    *Context);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnIsInternalMethod
+ *
+ * PARAMETERS:  Op                  - Current op
+ *
+ * RETURN:      Boolean
+ *
+ * DESCRIPTION: Check for an internal control method.
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AnIsInternalMethod (
+    ACPI_PARSE_OBJECT       *Op)
+{
+
+    if ((!strcmp (Op->Asl.ExternalName, "\\_OSI")) ||
+        (!strcmp (Op->Asl.ExternalName, "_OSI")))
+    {
+        return (TRUE);
+    }
+
+    return (FALSE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnGetInternalMethodReturnType
+ *
+ * PARAMETERS:  Op                  - Current op
+ *
+ * RETURN:      Btype
+ *
+ * DESCRIPTION: Get the return type of an internal method
+ *
+ ******************************************************************************/
+
+UINT32
+AnGetInternalMethodReturnType (
+    ACPI_PARSE_OBJECT       *Op)
+{
+
+    if ((!strcmp (Op->Asl.ExternalName, "\\_OSI")) ||
+        (!strcmp (Op->Asl.ExternalName, "_OSI")))
+    {
+        return (ACPI_BTYPE_STRING);
+    }
+
+    return (0);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnCheckId
+ *
+ * PARAMETERS:  Op                  - Current parse op
+ *              Type                - HID or CID
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Perform various checks on _HID and _CID strings. Only limited
+ *              checks can be performed on _CID strings.
+ *
+ ******************************************************************************/
+
+void
+AnCheckId (
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_NAME               Type)
+{
+    UINT32                  i;
+    ACPI_SIZE               Length;
+
+
+    /* Only care about string versions of _HID/_CID (integers are legal) */
+
+    if (Op->Asl.ParseOpcode != PARSEOP_STRING_LITERAL)
+    {
+        return;
+    }
+
+    /* For both _HID and _CID, the string must be non-null */
+
+    Length = strlen (Op->Asl.Value.String);
+    if (!Length)
+    {
+        AslError (ASL_ERROR, ASL_MSG_NULL_STRING, Op, NULL);
+        return;
+    }
+
+    /*
+     * One of the things we want to catch here is the use of a leading
+     * asterisk in the string -- an odd construct that certain platform
+     * manufacturers are fond of. Technically, a leading asterisk is OK
+     * for _CID, but a valid use of this has not been seen.
+     */
+    if (*Op->Asl.Value.String == '*')
+    {
+        AslError (ASL_ERROR, ASL_MSG_LEADING_ASTERISK,
+            Op, Op->Asl.Value.String);
+        return;
+    }
+
+    /* _CID strings are bus-specific, no more checks can be performed */
+
+    if (Type == ASL_TYPE_CID)
+    {
+        return;
+    }
+
+    /* For _HID, all characters must be alphanumeric */
+
+    for (i = 0; Op->Asl.Value.String[i]; i++)
+    {
+        if (!isalnum ((int) Op->Asl.Value.String[i]))
+        {
+            AslError (ASL_ERROR, ASL_MSG_ALPHANUMERIC_STRING,
+                Op, Op->Asl.Value.String);
+            return;
+        }
+    }
+
+    /*
+     * _HID String must be one of these forms:
+     *
+     * "AAA####"    A is an uppercase letter and # is a hex digit
+     * "ACPI####"   # is a hex digit
+     * "NNNN####"   N is an uppercase letter or decimal digit (0-9)
+     *              # is a hex digit (ACPI 5.0)
+     */
+    if ((Length < 7) || (Length > 8))
+    {
+        AslError (ASL_ERROR, ASL_MSG_HID_LENGTH,
+            Op, Op->Asl.Value.String);
+        return;
+    }
+
+    /* _HID Length is valid (7 or 8), now check prefix (first 3 or 4 chars) */
+
+    if (Length == 7)
+    {
+        /* AAA####: Ensure the alphabetic prefix is all uppercase */
+
+        for (i = 0; i < 3; i++)
+        {
+            if (!isupper ((int) Op->Asl.Value.String[i]))
+            {
+                AslError (ASL_ERROR, ASL_MSG_UPPER_CASE,
+                    Op, &Op->Asl.Value.String[i]);
+                return;
+            }
+        }
+    }
+    else /* Length == 8 */
+    {
+        /*
+         * ACPI#### or NNNN####:
+         * Ensure the prefix contains only uppercase alpha or decimal digits
+         */
+        for (i = 0; i < 4; i++)
+        {
+            if (!isupper ((int) Op->Asl.Value.String[i]) &&
+                !isdigit ((int) Op->Asl.Value.String[i]))
+            {
+                AslError (ASL_ERROR, ASL_MSG_HID_PREFIX,
+                    Op, &Op->Asl.Value.String[i]);
+                return;
+            }
+        }
+    }
+
+    /* Remaining characters (suffix) must be hex digits */
+
+    for (; i < Length; i++)
+    {
+        if (!isxdigit ((int) Op->Asl.Value.String[i]))
+        {
+            AslError (ASL_ERROR, ASL_MSG_HID_SUFFIX,
+                Op, &Op->Asl.Value.String[i]);
+            break;
+        }
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnLastStatementIsReturn
+ *
+ * PARAMETERS:  Op                  - A method parse node
+ *
+ * RETURN:      TRUE if last statement is an ASL RETURN. False otherwise
+ *
+ * DESCRIPTION: Walk down the list of top level statements within a method
+ *              to find the last one. Check if that last statement is in
+ *              fact a RETURN statement.
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AnLastStatementIsReturn (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT       *Next;
+
+
+    /* Check if last statement is a return */
+
+    Next = ASL_GET_CHILD_NODE (Op);
+    while (Next)
+    {
+        if ((!Next->Asl.Next) &&
+            (Next->Asl.ParseOpcode == PARSEOP_RETURN))
+        {
+            return (TRUE);
+        }
+
+        Next = ASL_GET_PEER_NODE (Next);
+    }
+
+    return (FALSE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AnCheckMethodReturnValue
+ *
+ * PARAMETERS:  Op                  - Parent
+ *              OpInfo              - Parent info
+ *              ArgOp               - Method invocation op
+ *              RequiredBtypes      - What caller requires
+ *              ThisNodeBtype       - What this node returns (if anything)
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Check a method invocation for 1) A return value and if it does
+ *              in fact return a value, 2) check the type of the return value.
+ *
+ ******************************************************************************/
+
+void
+AnCheckMethodReturnValue (
+    ACPI_PARSE_OBJECT       *Op,
+    const ACPI_OPCODE_INFO  *OpInfo,
+    ACPI_PARSE_OBJECT       *ArgOp,
+    UINT32                  RequiredBtypes,
+    UINT32                  ThisNodeBtype)
+{
+    ACPI_PARSE_OBJECT       *OwningOp;
+    ACPI_NAMESPACE_NODE     *Node;
+    char                    *ExternalPath;
+
+
+    Node = ArgOp->Asl.Node;
+
+    if (!Node)
+    {
+        /* No error message, this can happen and is OK */
+
+        return;
+    }
+
+    /* Examine the parent op of this method */
+
+    OwningOp = Node->Op;
+    ExternalPath = AcpiNsGetNormalizedPathname (Node, TRUE);
+
+    if (OwningOp->Asl.CompileFlags & OP_METHOD_NO_RETVAL)
+    {
+        /* Method NEVER returns a value */
+
+        AslError (ASL_ERROR, ASL_MSG_NO_RETVAL, Op, ExternalPath);
+    }
+    else if (OwningOp->Asl.CompileFlags & OP_METHOD_SOME_NO_RETVAL)
+    {
+        /* Method SOMETIMES returns a value, SOMETIMES not */
+
+        AslError (ASL_WARNING, ASL_MSG_SOME_NO_RETVAL, Op, ExternalPath);
+    }
+    else if (!(ThisNodeBtype & RequiredBtypes))
+    {
+        /* Method returns a value, but the type is wrong */
+
+        AnFormatBtype (AslGbl_StringBuffer, ThisNodeBtype);
+        AnFormatBtype (AslGbl_StringBuffer2, RequiredBtypes);
+
+        /*
+         * The case where the method does not return any value at all
+         * was already handled in the namespace cross reference
+         * -- Only issue an error if the method in fact returns a value,
+         * but it is of the wrong type
+         */
+        if (ThisNodeBtype != 0)
+        {
+            sprintf (AslGbl_MsgBuffer,
+                "Method returns [%s], %s operator requires [%s]",
+                AslGbl_StringBuffer, OpInfo->Name, AslGbl_StringBuffer2);
+
+            AslError (ASL_WARNING, ASL_MSG_INVALID_TYPE, ArgOp, AslGbl_MsgBuffer);
+        }
+    }
+
+    if (ExternalPath)
+    {
+        ACPI_FREE (ExternalPath);
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     }
 }
 

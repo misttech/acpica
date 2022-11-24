@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -387,6 +388,414 @@ AdDisassembleOneTable (
         AcpiOsPrintf ("Could not parse ACPI tables, %s\n",
             AcpiFormatException (Status));
         return (Status);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "aslcompiler.h"
+#include "amlcode.h"
+#include "acdisasm.h"
+#include "acdispat.h"
+#include "acnamesp.h"
+#include "acparser.h"
+#include "acapps.h"
+#include "acconvert.h"
+
+
+#define _COMPONENT          ACPI_TOOLS
+        ACPI_MODULE_NAME    ("adisasm")
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AdDoExternalFileList (
+    char                    *Filename);
+
+static ACPI_STATUS
+AdDisassembleOneTable (
+    ACPI_TABLE_HEADER       *Table,
+    FILE                    *File,
+    char                    *Filename,
+    char                    *DisasmFilename);
+
+static ACPI_STATUS
+AdReparseOneTable (
+    ACPI_TABLE_HEADER       *Table,
+    FILE                    *File,
+    ACPI_OWNER_ID           OwnerId);
+
+
+ACPI_TABLE_DESC             LocalTables[1];
+ACPI_PARSE_OBJECT           *AcpiGbl_ParseOpRoot;
+
+
+/* Stubs for everything except ASL compiler */
+
+#ifndef ACPI_ASL_COMPILER
+BOOLEAN
+AcpiDsIsResultUsed (
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return (TRUE);
+}
+
+ACPI_STATUS
+AcpiDsMethodError (
+    ACPI_STATUS             Status,
+    ACPI_WALK_STATE         *WalkState)
+{
+    return (Status);
+}
+#endif
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AdInitialize
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: ACPICA and local initialization
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AdInitialize (
+    void)
+{
+    ACPI_STATUS             Status;
+
+
+    /* ACPICA subsystem initialization */
+
+    Status = AcpiOsInitialize ();
+    if (ACPI_FAILURE (Status))
+    {
+        fprintf (stderr, "Could not initialize ACPICA subsystem: %s\n",
+            AcpiFormatException (Status));
+
+        return (Status);
+    }
+
+    Status = AcpiUtInitGlobals ();
+    if (ACPI_FAILURE (Status))
+    {
+        fprintf (stderr, "Could not initialize ACPICA globals: %s\n",
+            AcpiFormatException (Status));
+
+        return (Status);
+    }
+
+    Status = AcpiUtMutexInitialize ();
+    if (ACPI_FAILURE (Status))
+    {
+        fprintf (stderr, "Could not initialize ACPICA mutex objects: %s\n",
+            AcpiFormatException (Status));
+
+        return (Status);
+    }
+
+    Status = AcpiNsRootInitialize ();
+    if (ACPI_FAILURE (Status))
+    {
+        fprintf (stderr, "Could not initialize ACPICA namespace: %s\n",
+            AcpiFormatException (Status));
+
+        return (Status);
+    }
+
+    /* Setup the Table Manager (cheat - there is no RSDT) */
+
+    AcpiGbl_RootTableList.MaxTableCount = 1;
+    AcpiGbl_RootTableList.CurrentTableCount = 0;
+    AcpiGbl_RootTableList.Tables = LocalTables;
+
+    return (AE_OK);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AdAmlDisassemble
+ *
+ * PARAMETERS:  Filename            - AML input filename
+ *              OutToFile           - TRUE if output should go to a file
+ *              Prefix              - Path prefix for output
+ *              OutFilename         - where the filename is returned
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Disassembler entry point. Disassemble an entire ACPI table.
+ *
+ *****************************************************************************/
+
+ACPI_STATUS
+AdAmlDisassemble (
+    BOOLEAN                 OutToFile,
+    char                    *Filename,
+    char                    *Prefix,
+    char                    **OutFilename)
+{
+    ACPI_STATUS             Status;
+    char                    *DisasmFilename = NULL;
+    FILE                    *File = NULL;
+    ACPI_TABLE_HEADER       *Table = NULL;
+    ACPI_NEW_TABLE_DESC     *ListHead = NULL;
+
+
+    /*
+     * Input: AML code from either a file or via GetTables (memory or
+     * registry)
+     */
+    if (Filename)
+    {
+        /* Get the list of all AML tables in the file */
+
+        Status = AcGetAllTablesFromFile (Filename,
+            ACPI_GET_ALL_TABLES, &ListHead);
+        if (ACPI_FAILURE (Status))
+        {
+            AcpiOsPrintf ("Could not get ACPI tables from %s, %s\n",
+                Filename, AcpiFormatException (Status));
+            return (Status);
+        }
+
+        /* Process any user-specified files for external objects */
+
+        Status = AdDoExternalFileList (Filename);
+        if (ACPI_FAILURE (Status))
+        {
+            return (Status);
+        }
+    }
+    else
+    {
+        Status = AdGetLocalTables ();
+        if (ACPI_FAILURE (Status))
+        {
+            AcpiOsPrintf ("Could not get ACPI tables, %s\n",
+                AcpiFormatException (Status));
+            return (Status);
+        }
+
+        if (!AcpiGbl_DmOpt_Disasm)
+        {
+            return (AE_OK);
+        }
+
+        /* Obtained the local tables, just disassemble the DSDT */
+
+        Status = AcpiGetTable (ACPI_SIG_DSDT, 0, &Table);
+        if (ACPI_FAILURE (Status))
+        {
+            AcpiOsPrintf ("Could not get DSDT, %s\n",
+                AcpiFormatException (Status));
+            return (Status);
+        }
+
+        AcpiOsPrintf ("\nDisassembly of DSDT\n");
+        Prefix = AdGenerateFilename ("dsdt", Table->OemTableId);
+    }
+
+    /*
+     * Output: ASL code. Redirect to a file if requested
+     */
+    if (OutToFile)
+    {
+        /* Create/Open a disassembly output file */
+
+        DisasmFilename = FlGenerateFilename (Prefix, FILE_SUFFIX_DISASSEMBLY);
+        if (!DisasmFilename)
+        {
+            fprintf (stderr, "Could not generate output filename\n");
+            Status = AE_ERROR;
+            goto Cleanup;
+        }
+
+        File = fopen (DisasmFilename, "w+");
+        if (!File)
+        {
+            fprintf (stderr, "Could not open output file %s\n",
+                DisasmFilename);
+            Status = AE_ERROR;
+            goto Cleanup;
+        }
+    }
+
+    *OutFilename = DisasmFilename;
+
+    /* Disassemble all AML tables within the file */
+
+    while (ListHead)
+    {
+        Status = AdDisassembleOneTable (ListHead->Table,
+            File, Filename, DisasmFilename);
+        if (ACPI_FAILURE (Status))
+        {
+            break;
+        }
+
+        ListHead = ListHead->Next;
+    }
+
+Cleanup:
+
+    if (Table &&
+        !AcpiGbl_ForceAmlDisassembly &&
+        !AcpiUtIsAmlTable (Table))
+    {
+        ACPI_FREE (Table);
+    }
+
+    AcDeleteTableList (ListHead);
+
+    if (File)
+    {
+        fclose (File);
+        AcpiOsRedirectOutput (stdout);
+    }
+
+    AcpiPsDeleteParseTree (AcpiGbl_ParseOpRoot);
+    AcpiGbl_ParseOpRoot = NULL;
+    return (Status);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AdDisassembleOneTable
+ *
+ * PARAMETERS:  Table               - Raw AML table
+ *              File                - Pointer for the input file
+ *              Filename            - AML input filename
+ *              DisasmFilename      - Output filename
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Disassemble a single ACPI table. AML or data table.
+ *
+ *****************************************************************************/
+
+static ACPI_STATUS
+AdDisassembleOneTable (
+    ACPI_TABLE_HEADER       *Table,
+    FILE                    *File,
+    char                    *Filename,
+    char                    *DisasmFilename)
+{
+    ACPI_STATUS             Status;
+    ACPI_OWNER_ID           OwnerId;
+
+
+#ifdef ACPI_ASL_COMPILER
+
+    /*
+     * For ASL-/ASL+ converter: replace the temporary "XXXX"
+     * table signature with the original. This "XXXX" makes
+     * it harder for the AML interpreter to run the badaml
+     * (.xxx) file produced from the converter in case if
+     * it fails to get deleted.
+     */
+    if (AcpiGbl_CaptureComments)
+    {
+        strncpy (Table->Signature, AcpiGbl_TableSig, ACPI_NAMESEG_SIZE);
+    }
+#endif
+
+    /* ForceAmlDisassembly means to assume the table contains valid AML */
+
+    if (!AcpiGbl_ForceAmlDisassembly && !AcpiUtIsAmlTable (Table))
+    {
+        if (File)
+        {
+            AcpiOsRedirectOutput (File);
+        }
+
+        AdDisassemblerHeader (Filename, ACPI_IS_DATA_TABLE);
+
+        /* This is a "Data Table" (non-AML table) */
+
+        AcpiOsPrintf (" * ACPI Data Table [%4.4s]\n *\n",
+            AcpiGbl_CDAT ? (char *) AcpiGbl_CDAT : Table->Signature);
+        AcpiOsPrintf (" * Format: [HexOffset DecimalOffset ByteLength]  "
+            "FieldName : FieldValue (in hex)\n */\n\n");
+
+        AcpiDmDumpDataTable (Table);
+        fprintf (stderr, "Acpi Data Table [%4.4s] decoded\n",
+            AcpiGbl_CDAT ? (char *) AcpiGbl_CDAT : Table->Signature);
+
+        if (File)
+        {
+            fprintf (stderr, "Formatted output:  %s - %u bytes\n",
+                DisasmFilename, CmGetFileSize (File));
+        }
+
+        return (AE_OK);
+    }
+
+    /* Initialize the converter output file */
+
+    ASL_CV_INIT_FILETREE(Table, File);
+
+    /*
+     * This is an AML table (DSDT or SSDT).
+     * Always parse the tables, only option is what to display
+     */
+    Status = AdParseTable (Table, &OwnerId, TRUE, FALSE);
+    if (ACPI_FAILURE (Status))
+    {
+        AcpiOsPrintf ("Could not parse ACPI tables, %s\n",
+            AcpiFormatException (Status));
+        return (Status);
+    }
+
+    /* Redirect output for code generation and debugging output */
+
+    if (File)
+    {
+        AcpiOsRedirectOutput (File);
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     }
 
     /* Debug output, namespace and parse tree */

@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -143,6 +144,155 @@ AcpiDsDumpMethodStack (
     /* Ignore control codes, they are not errors */
 
     if ((Status & AE_CODE_MASK) == AE_CODE_CONTROL)
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acdispat.h"
+#include "acnamesp.h"
+#include "acdisasm.h"
+#include "acinterp.h"
+
+
+#define _COMPONENT          ACPI_DISPATCHER
+        ACPI_MODULE_NAME    ("dsdebug")
+
+
+#if defined(ACPI_DEBUG_OUTPUT) || defined(ACPI_DEBUGGER)
+
+/* Local prototypes */
+
+static void
+AcpiDsPrintNodePathname (
+    ACPI_NAMESPACE_NODE     *Node,
+    const char              *Message);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDsPrintNodePathname
+ *
+ * PARAMETERS:  Node            - Object
+ *              Message         - Prefix message
+ *
+ * DESCRIPTION: Print an object's full namespace pathname
+ *              Manages allocation/freeing of a pathname buffer
+ *
+ ******************************************************************************/
+
+static void
+AcpiDsPrintNodePathname (
+    ACPI_NAMESPACE_NODE     *Node,
+    const char              *Message)
+{
+    ACPI_BUFFER             Buffer;
+    ACPI_STATUS             Status;
+
+
+    ACPI_FUNCTION_TRACE (DsPrintNodePathname);
+
+    if (!Node)
+    {
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_DISPATCH, "[NULL NAME]"));
+        return_VOID;
+    }
+
+    /* Convert handle to full pathname and print it (with supplied message) */
+
+    Buffer.Length = ACPI_ALLOCATE_LOCAL_BUFFER;
+
+    Status = AcpiNsHandleToPathname (Node, &Buffer, TRUE);
+    if (ACPI_SUCCESS (Status))
+    {
+        if (Message)
+        {
+            ACPI_DEBUG_PRINT_RAW ((ACPI_DB_DISPATCH, "%s ", Message));
+        }
+
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_DISPATCH, "[%s] (Node %p)",
+            (char *) Buffer.Pointer, Node));
+        ACPI_FREE (Buffer.Pointer);
+    }
+
+    return_VOID;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDsDumpMethodStack
+ *
+ * PARAMETERS:  Status          - Method execution status
+ *              WalkState       - Current state of the parse tree walk
+ *              Op              - Executing parse op
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Called when a method has been aborted because of an error.
+ *              Dumps the method execution stack.
+ *
+ ******************************************************************************/
+
+void
+AcpiDsDumpMethodStack (
+    ACPI_STATUS             Status,
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT       *Next;
+    ACPI_THREAD_STATE       *Thread;
+    ACPI_WALK_STATE         *NextWalkState;
+    ACPI_NAMESPACE_NODE     *PreviousMethod = NULL;
+    ACPI_OPERAND_OBJECT     *MethodDesc;
+
+
+    ACPI_FUNCTION_TRACE (DsDumpMethodStack);
+
+
+    /* Ignore control codes, they are not errors */
+
+    if (ACPI_CNTL_EXCEPTION (Status))
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
     {
         return_VOID;
     }

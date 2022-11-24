@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -300,6 +301,311 @@ AcpiPsParseLoop (
                 Status = AcpiDsGetPredicateValue (WalkState, ACPI_TO_POINTER (TRUE));
                 if (ACPI_FAILURE (Status) &&
                     ((Status & AE_CODE_MASK) != AE_CODE_CONTROL))
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+/*
+ * Parse the AML and build an operation tree as most interpreters, (such as
+ * Perl) do. Parsing is done by hand rather than with a YACC generated parser
+ * to tightly constrain stack and dynamic memory usage. Parsing is kept
+ * flexible and the code fairly compact by parsing based on a list of AML
+ * opcode templates in AmlOpInfo[].
+ */
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acinterp.h"
+#include "acparser.h"
+#include "acdispat.h"
+#include "amlcode.h"
+#include "acconvert.h"
+#include "acnamesp.h"
+
+#define _COMPONENT          ACPI_PARSER
+        ACPI_MODULE_NAME    ("psloop")
+
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiPsGetArguments (
+    ACPI_WALK_STATE         *WalkState,
+    UINT8                   *AmlOpStart,
+    ACPI_PARSE_OBJECT       *Op);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiPsGetArguments
+ *
+ * PARAMETERS:  WalkState           - Current state
+ *              AmlOpStart          - Op start in AML
+ *              Op                  - Current Op
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Get arguments for passed Op.
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiPsGetArguments (
+    ACPI_WALK_STATE         *WalkState,
+    UINT8                   *AmlOpStart,
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_STATUS             Status = AE_OK;
+    ACPI_PARSE_OBJECT       *Arg = NULL;
+
+
+    ACPI_FUNCTION_TRACE_PTR (PsGetArguments, WalkState);
+
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_PARSE,
+        "Get arguments for opcode [%s]\n", Op->Common.AmlOpName));
+
+    switch (Op->Common.AmlOpcode)
+    {
+    case AML_BYTE_OP:       /* AML_BYTEDATA_ARG */
+    case AML_WORD_OP:       /* AML_WORDDATA_ARG */
+    case AML_DWORD_OP:      /* AML_DWORDATA_ARG */
+    case AML_QWORD_OP:      /* AML_QWORDATA_ARG */
+    case AML_STRING_OP:     /* AML_ASCIICHARLIST_ARG */
+
+        /* Fill in constant or string argument directly */
+
+        AcpiPsGetNextSimpleArg (&(WalkState->ParserState),
+            GET_CURRENT_ARG_TYPE (WalkState->ArgTypes), Op);
+        break;
+
+    case AML_INT_NAMEPATH_OP:   /* AML_NAMESTRING_ARG */
+
+        Status = AcpiPsGetNextNamepath (WalkState,
+            &(WalkState->ParserState), Op, ACPI_POSSIBLE_METHOD_CALL);
+        if (ACPI_FAILURE (Status))
+        {
+            return_ACPI_STATUS (Status);
+        }
+
+        WalkState->ArgTypes = 0;
+        break;
+
+    default:
+        /*
+         * Op is not a constant or string, append each argument to the Op
+         */
+        while (GET_CURRENT_ARG_TYPE (WalkState->ArgTypes) &&
+            !WalkState->ArgCount)
+        {
+            WalkState->Aml = WalkState->ParserState.Aml;
+
+            switch (Op->Common.AmlOpcode)
+            {
+            case AML_METHOD_OP:
+            case AML_BUFFER_OP:
+            case AML_PACKAGE_OP:
+            case AML_VARIABLE_PACKAGE_OP:
+            case AML_WHILE_OP:
+
+                break;
+
+            default:
+
+                ASL_CV_CAPTURE_COMMENTS (WalkState);
+                break;
+            }
+
+            Status = AcpiPsGetNextArg (WalkState, &(WalkState->ParserState),
+                GET_CURRENT_ARG_TYPE (WalkState->ArgTypes), &Arg);
+            if (ACPI_FAILURE (Status))
+            {
+                return_ACPI_STATUS (Status);
+            }
+
+            if (Arg)
+            {
+                AcpiPsAppendArg (Op, Arg);
+            }
+
+            INCREMENT_ARG_LIST (WalkState->ArgTypes);
+        }
+
+        ACPI_DEBUG_PRINT ((ACPI_DB_PARSE,
+            "Final argument count: %8.8X pass %u\n",
+            WalkState->ArgCount, WalkState->PassNumber));
+
+        /* Special processing for certain opcodes */
+
+        switch (Op->Common.AmlOpcode)
+        {
+        case AML_METHOD_OP:
+            /*
+             * Skip parsing of control method because we don't have enough
+             * info in the first pass to parse it correctly.
+             *
+             * Save the length and address of the body
+             */
+            Op->Named.Data = WalkState->ParserState.Aml;
+            Op->Named.Length = (UINT32)
+                (WalkState->ParserState.PkgEnd - WalkState->ParserState.Aml);
+
+            /* Skip body of method */
+
+            WalkState->ParserState.Aml = WalkState->ParserState.PkgEnd;
+            WalkState->ArgCount = 0;
+            break;
+
+        case AML_BUFFER_OP:
+        case AML_PACKAGE_OP:
+        case AML_VARIABLE_PACKAGE_OP:
+
+            if ((Op->Common.Parent) &&
+                (Op->Common.Parent->Common.AmlOpcode == AML_NAME_OP) &&
+                (WalkState->PassNumber <= ACPI_IMODE_LOAD_PASS2))
+            {
+                ACPI_DEBUG_PRINT ((ACPI_DB_PARSE,
+                    "Setup Package/Buffer: Pass %u, AML Ptr: %p\n",
+                    WalkState->PassNumber, AmlOpStart));
+
+                /*
+                 * Skip parsing of Buffers and Packages because we don't have
+                 * enough info in the first pass to parse them correctly.
+                 */
+                Op->Named.Data = AmlOpStart;
+                Op->Named.Length = (UINT32)
+                    (WalkState->ParserState.PkgEnd - AmlOpStart);
+
+                /* Skip body */
+
+                WalkState->ParserState.Aml = WalkState->ParserState.PkgEnd;
+                WalkState->ArgCount = 0;
+            }
+            break;
+
+        case AML_WHILE_OP:
+
+            if (WalkState->ControlState)
+            {
+                WalkState->ControlState->Control.PackageEnd =
+                    WalkState->ParserState.PkgEnd;
+            }
+            break;
+
+        default:
+
+            /* No action for all other opcodes */
+
+            break;
+        }
+
+        break;
+    }
+
+    return_ACPI_STATUS (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiPsParseLoop
+ *
+ * PARAMETERS:  WalkState           - Current state
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Parse AML (pointed to by the current parser state) and return
+ *              a tree of ops.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiPsParseLoop (
+    ACPI_WALK_STATE         *WalkState)
+{
+    ACPI_STATUS             Status = AE_OK;
+    ACPI_PARSE_OBJECT       *Op = NULL;     /* current op */
+    ACPI_PARSE_STATE        *ParserState;
+    UINT8                   *AmlOpStart = NULL;
+    UINT8                   OpcodeLength;
+
+
+    ACPI_FUNCTION_TRACE_PTR (PsParseLoop, WalkState);
+
+
+    if (WalkState->DescendingCallback == NULL)
+    {
+        return_ACPI_STATUS (AE_BAD_PARAMETER);
+    }
+
+    ParserState = &WalkState->ParserState;
+    WalkState->ArgTypes = 0;
+
+#ifndef ACPI_CONSTANT_EVAL_ONLY
+
+    if (WalkState->WalkType & ACPI_WALK_METHOD_RESTART)
+    {
+        /* We are restarting a preempted control method */
+
+        if (AcpiPsHasCompletedScope (ParserState))
+        {
+            /*
+             * We must check if a predicate to an IF or WHILE statement
+             * was just completed
+             */
+            if ((ParserState->Scope->ParseScope.Op) &&
+               ((ParserState->Scope->ParseScope.Op->Common.AmlOpcode == AML_IF_OP) ||
+                (ParserState->Scope->ParseScope.Op->Common.AmlOpcode == AML_WHILE_OP)) &&
+                (WalkState->ControlState) &&
+                (WalkState->ControlState->Common.State ==
+                    ACPI_CONTROL_PREDICATE_EXECUTING))
+            {
+                /*
+                 * A predicate was just completed, get the value of the
+                 * predicate and branch based on that value
+                 */
+                WalkState->Op = NULL;
+                Status = AcpiDsGetPredicateValue (WalkState, ACPI_TO_POINTER (TRUE));
+                if (ACPI_FAILURE (Status) && !ACPI_CNTL_EXCEPTION (Status))
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
                 {
                     if (Status == AE_AML_NO_RETURN_VALUE)
                     {

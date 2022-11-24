@@ -4,6 +4,7 @@
  *
  ******************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -543,6 +544,579 @@ AcpiDbExecute (
                 (UINT32) ReturnObj.Length);
 
             AcpiDbDumpExternalObject (ReturnObj.Pointer, 1);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acdebug.h"
+#include "acnamesp.h"
+
+
+#define _COMPONENT          ACPI_CA_DEBUGGER
+        ACPI_MODULE_NAME    ("dbexec")
+
+
+static ACPI_DB_METHOD_INFO          AcpiGbl_DbMethodInfo;
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiDbExecuteMethod (
+    ACPI_DB_METHOD_INFO     *Info,
+    ACPI_BUFFER             *ReturnObj);
+
+static ACPI_STATUS
+AcpiDbExecuteSetup (
+    ACPI_DB_METHOD_INFO     *Info);
+
+static UINT32
+AcpiDbGetOutstandingAllocations (
+    void);
+
+static void ACPI_SYSTEM_XFACE
+AcpiDbMethodThread (
+    void                    *Context);
+
+static ACPI_STATUS
+AcpiDbExecutionWalk (
+    ACPI_HANDLE             ObjHandle,
+    UINT32                  NestingLevel,
+    void                    *Context,
+    void                    **ReturnValue);
+
+static void ACPI_SYSTEM_XFACE
+AcpiDbSingleExecutionThread (
+    void                    *Context);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbDeleteObjects
+ *
+ * PARAMETERS:  Count               - Count of objects in the list
+ *              Objects             - Array of ACPI_OBJECTs to be deleted
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Delete a list of ACPI_OBJECTS. Handles packages and nested
+ *              packages via recursion.
+ *
+ ******************************************************************************/
+
+void
+AcpiDbDeleteObjects (
+    UINT32                  Count,
+    ACPI_OBJECT             *Objects)
+{
+    UINT32                  i;
+
+
+    for (i = 0; i < Count; i++)
+    {
+        switch (Objects[i].Type)
+        {
+        case ACPI_TYPE_BUFFER:
+
+            ACPI_FREE (Objects[i].Buffer.Pointer);
+            break;
+
+        case ACPI_TYPE_PACKAGE:
+
+            /* Recursive call to delete package elements */
+
+            AcpiDbDeleteObjects (Objects[i].Package.Count,
+                Objects[i].Package.Elements);
+
+            /* Free the elements array */
+
+            ACPI_FREE (Objects[i].Package.Elements);
+            break;
+
+        default:
+
+            break;
+        }
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbExecuteMethod
+ *
+ * PARAMETERS:  Info            - Valid info segment
+ *              ReturnObj       - Where to put return object
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Execute a control method. Used to evaluate objects via the
+ *              "EXECUTE" or "EVALUATE" commands.
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiDbExecuteMethod (
+    ACPI_DB_METHOD_INFO     *Info,
+    ACPI_BUFFER             *ReturnObj)
+{
+    ACPI_STATUS             Status;
+    ACPI_OBJECT_LIST        ParamObjects;
+    ACPI_OBJECT             Params[ACPI_DEBUGGER_MAX_ARGS + 1];
+    UINT32                  i;
+
+
+    ACPI_FUNCTION_TRACE (DbExecuteMethod);
+
+
+    if (AcpiGbl_DbOutputToFile && !AcpiDbgLevel)
+    {
+        AcpiOsPrintf ("Warning: debug output is not enabled!\n");
+    }
+
+    ParamObjects.Count = 0;
+    ParamObjects.Pointer = NULL;
+
+    /* Pass through any command-line arguments */
+
+    if (Info->Args && Info->Args[0])
+    {
+        /* Get arguments passed on the command line */
+
+        for (i = 0; (Info->Args[i] && *(Info->Args[i])); i++)
+        {
+            /* Convert input string (token) to an actual ACPI_OBJECT */
+
+            Status = AcpiDbConvertToObject (Info->Types[i],
+                Info->Args[i], &Params[i]);
+            if (ACPI_FAILURE (Status))
+            {
+                ACPI_EXCEPTION ((AE_INFO, Status,
+                    "While parsing method arguments"));
+                goto Cleanup;
+            }
+        }
+
+        ParamObjects.Count = i;
+        ParamObjects.Pointer = Params;
+    }
+
+    /* Prepare for a return object of arbitrary size */
+
+    ReturnObj->Pointer = AcpiGbl_DbBuffer;
+    ReturnObj->Length  = ACPI_DEBUG_BUFFER_SIZE;
+
+    /* Do the actual method execution */
+
+    AcpiGbl_MethodExecuting = TRUE;
+    Status = AcpiEvaluateObject (NULL, Info->Pathname,
+        &ParamObjects, ReturnObj);
+
+    AcpiGbl_CmSingleStep = FALSE;
+    AcpiGbl_MethodExecuting = FALSE;
+
+    if (ACPI_FAILURE (Status))
+    {
+        if ((Status == AE_ABORT_METHOD) || AcpiGbl_AbortMethod)
+        {
+            /* Clear the abort and fall back to the debugger prompt */
+
+            ACPI_EXCEPTION ((AE_INFO, Status,
+                "Aborting top-level method"));
+
+            AcpiGbl_AbortMethod = FALSE;
+            Status = AE_OK;
+            goto Cleanup;
+        }
+
+        ACPI_EXCEPTION ((AE_INFO, Status,
+            "while executing %s from AML Debugger", Info->Pathname));
+
+        if (Status == AE_BUFFER_OVERFLOW)
+        {
+            ACPI_ERROR ((AE_INFO,
+                "Possible buffer overflow within AML Debugger "
+                "buffer (size 0x%X needed 0x%X)",
+                ACPI_DEBUG_BUFFER_SIZE, (UINT32) ReturnObj->Length));
+        }
+    }
+
+Cleanup:
+    AcpiDbDeleteObjects (ParamObjects.Count, Params);
+    return_ACPI_STATUS (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbExecuteSetup
+ *
+ * PARAMETERS:  Info            - Valid method info
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Setup info segment prior to method execution
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiDbExecuteSetup (
+    ACPI_DB_METHOD_INFO     *Info)
+{
+    ACPI_STATUS             Status;
+
+
+    ACPI_FUNCTION_NAME (DbExecuteSetup);
+
+
+    /* Concatenate the current scope to the supplied name */
+
+    Info->Pathname[0] = 0;
+    if ((Info->Name[0] != '\\') &&
+        (Info->Name[0] != '/'))
+    {
+        if (AcpiUtSafeStrcat (Info->Pathname, sizeof (Info->Pathname),
+            AcpiGbl_DbScopeBuf))
+        {
+            Status = AE_BUFFER_OVERFLOW;
+            goto ErrorExit;
+        }
+    }
+
+    if (AcpiUtSafeStrcat (Info->Pathname, sizeof (Info->Pathname),
+        Info->Name))
+    {
+        Status = AE_BUFFER_OVERFLOW;
+        goto ErrorExit;
+    }
+
+    AcpiDbPrepNamestring (Info->Pathname);
+
+    AcpiDbSetOutputDestination (ACPI_DB_DUPLICATE_OUTPUT);
+    AcpiOsPrintf ("Evaluating %s\n", Info->Pathname);
+
+    if (Info->Flags & EX_SINGLE_STEP)
+    {
+        AcpiGbl_CmSingleStep = TRUE;
+        AcpiDbSetOutputDestination (ACPI_DB_CONSOLE_OUTPUT);
+    }
+
+    else
+    {
+        /* No single step, allow redirection to a file */
+
+        AcpiDbSetOutputDestination (ACPI_DB_REDIRECTABLE_OUTPUT);
+    }
+
+    return (AE_OK);
+
+ErrorExit:
+
+    ACPI_EXCEPTION ((AE_INFO, Status, "During setup for method execution"));
+    return (Status);
+}
+
+
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+UINT32
+AcpiDbGetCacheInfo (
+    ACPI_MEMORY_LIST        *Cache)
+{
+
+    return (Cache->TotalAllocated - Cache->TotalFreed - Cache->CurrentDepth);
+}
+#endif
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbGetOutstandingAllocations
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Current global allocation count minus cache entries
+ *
+ * DESCRIPTION: Determine the current number of "outstanding" allocations --
+ *              those allocations that have not been freed and also are not
+ *              in one of the various object caches.
+ *
+ ******************************************************************************/
+
+static UINT32
+AcpiDbGetOutstandingAllocations (
+    void)
+{
+    UINT32                  Outstanding = 0;
+
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+
+    Outstanding += AcpiDbGetCacheInfo (AcpiGbl_StateCache);
+    Outstanding += AcpiDbGetCacheInfo (AcpiGbl_PsNodeCache);
+    Outstanding += AcpiDbGetCacheInfo (AcpiGbl_PsNodeExtCache);
+    Outstanding += AcpiDbGetCacheInfo (AcpiGbl_OperandCache);
+#endif
+
+    return (Outstanding);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbExecutionWalk
+ *
+ * PARAMETERS:  WALK_CALLBACK
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Execute a control method. Name is relative to the current
+ *              scope.
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiDbExecutionWalk (
+    ACPI_HANDLE             ObjHandle,
+    UINT32                  NestingLevel,
+    void                    *Context,
+    void                    **ReturnValue)
+{
+    ACPI_OPERAND_OBJECT     *ObjDesc;
+    ACPI_NAMESPACE_NODE     *Node = (ACPI_NAMESPACE_NODE *) ObjHandle;
+    ACPI_BUFFER             ReturnObj;
+    ACPI_STATUS             Status;
+
+
+    ObjDesc = AcpiNsGetAttachedObject (Node);
+    if (ObjDesc->Method.ParamCount)
+    {
+        return (AE_OK);
+    }
+
+    ReturnObj.Pointer = NULL;
+    ReturnObj.Length = ACPI_ALLOCATE_BUFFER;
+
+    AcpiNsPrintNodePathname (Node, "Evaluating");
+
+    /* Do the actual method execution */
+
+    AcpiOsPrintf ("\n");
+    AcpiGbl_MethodExecuting = TRUE;
+
+    Status = AcpiEvaluateObject (Node, NULL, NULL, &ReturnObj);
+
+    AcpiGbl_MethodExecuting = FALSE;
+
+    AcpiOsPrintf ("Evaluation of [%4.4s] returned %s\n",
+        AcpiUtGetNodeName (Node),
+        AcpiFormatException (Status));
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiDbExecute
+ *
+ * PARAMETERS:  Name                - Name of method to execute
+ *              Args                - Parameters to the method
+ *              Types               -
+ *              Flags               - single step/no single step
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Execute a control method. Name is relative to the current
+ *              scope. Function used for the "EXECUTE", "EVALUATE", and
+ *              "ALL" commands
+ *
+ ******************************************************************************/
+
+void
+AcpiDbExecute (
+    char                    *Name,
+    char                    **Args,
+    ACPI_OBJECT_TYPE        *Types,
+    UINT32                  Flags)
+{
+    ACPI_STATUS             Status;
+    ACPI_BUFFER             ReturnObj;
+    char                    *NameString;
+
+#ifdef ACPI_DEBUG_OUTPUT
+    UINT32                  PreviousAllocations;
+    UINT32                  Allocations;
+#endif
+
+
+    /*
+     * Allow one execution to be performed by debugger or single step
+     * execution will be dead locked by the interpreter mutexes.
+     */
+    if (AcpiGbl_MethodExecuting)
+    {
+        AcpiOsPrintf ("Only one debugger execution is allowed.\n");
+        return;
+    }
+
+#ifdef ACPI_DEBUG_OUTPUT
+    /* Memory allocation tracking */
+
+    PreviousAllocations = AcpiDbGetOutstandingAllocations ();
+#endif
+
+    if (*Name == '*')
+    {
+        (void) AcpiWalkNamespace (ACPI_TYPE_METHOD, ACPI_ROOT_OBJECT,
+            ACPI_UINT32_MAX, AcpiDbExecutionWalk, NULL, NULL, NULL);
+        return;
+    }
+
+    if ((Flags & EX_ALL) && (strlen (Name) > 4))
+    {
+        AcpiOsPrintf ("Input name (%s) must be a 4-char NameSeg\n", Name);
+        return;
+    }
+
+    NameString = ACPI_ALLOCATE (strlen (Name) + 1);
+    if (!NameString)
+    {
+        return;
+    }
+
+    memset (&AcpiGbl_DbMethodInfo, 0, sizeof (ACPI_DB_METHOD_INFO));
+    strcpy (NameString, Name);
+    AcpiUtStrupr (NameString);
+
+    /* Subcommand to Execute all predefined names in the namespace */
+
+    if (!strncmp (NameString, "PREDEF", 6))
+    {
+        AcpiDbEvaluatePredefinedNames ();
+        ACPI_FREE (NameString);
+        return;
+    }
+
+    /* Command (ALL <nameseg>) to execute all methods of a particular name */
+
+    else if (Flags & EX_ALL)
+    {
+        AcpiGbl_DbMethodInfo.Name = NameString;
+        ReturnObj.Pointer = NULL;
+        ReturnObj.Length = ACPI_ALLOCATE_BUFFER;
+        AcpiDbEvaluateAll (NameString);
+        ACPI_FREE (NameString);
+        return;
+    }
+    else
+    {
+        AcpiGbl_DbMethodInfo.Name = NameString;
+        AcpiGbl_DbMethodInfo.Args = Args;
+        AcpiGbl_DbMethodInfo.Types = Types;
+        AcpiGbl_DbMethodInfo.Flags = Flags;
+
+        ReturnObj.Pointer = NULL;
+        ReturnObj.Length = ACPI_ALLOCATE_BUFFER;
+    }
+
+    Status = AcpiDbExecuteSetup (&AcpiGbl_DbMethodInfo);
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_FREE (NameString);
+        return;
+    }
+
+    /* Get the NS node, determines existence also */
+
+    Status = AcpiGetHandle (NULL, AcpiGbl_DbMethodInfo.Pathname,
+        &AcpiGbl_DbMethodInfo.Method);
+    if (ACPI_SUCCESS (Status))
+    {
+        Status = AcpiDbExecuteMethod (&AcpiGbl_DbMethodInfo,
+            &ReturnObj);
+    }
+    ACPI_FREE (NameString);
+
+    /*
+     * Allow any handlers in separate threads to complete.
+     * (Such as Notify handlers invoked from AML executed above).
+     */
+    AcpiOsSleep ((UINT64) 10);
+
+#ifdef ACPI_DEBUG_OUTPUT
+
+    /* Memory allocation tracking */
+
+    Allocations = AcpiDbGetOutstandingAllocations () - PreviousAllocations;
+
+    AcpiDbSetOutputDestination (ACPI_DB_DUPLICATE_OUTPUT);
+
+    if (Allocations > 0)
+    {
+        AcpiOsPrintf (
+            "0x%X Outstanding allocations after evaluation of %s\n",
+            Allocations, AcpiGbl_DbMethodInfo.Pathname);
+    }
+#endif
+
+    if (ACPI_FAILURE (Status))
+    {
+        AcpiOsPrintf ("Evaluation of %s failed with status %s\n",
+            AcpiGbl_DbMethodInfo.Pathname,
+            AcpiFormatException (Status));
+    }
+    else
+    {
+        /* Display a return object, if any */
+
+        if (ReturnObj.Length)
+        {
+            AcpiOsPrintf (
+                "Evaluation of %s returned object %p, "
+                "external buffer length %X\n",
+                AcpiGbl_DbMethodInfo.Pathname, ReturnObj.Pointer,
+                (UINT32) ReturnObj.Length);
+
+            AcpiDbDumpExternalObject (ReturnObj.Pointer, 1);
+            AcpiOsPrintf ("\n");
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
             /* Dump a _PLD buffer if present */
 

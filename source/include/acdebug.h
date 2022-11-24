@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -232,6 +233,250 @@ AcpiDbDisassembleAml (
 void
 AcpiDbEvaluatePredefinedNames (
     void);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#ifndef __ACDEBUG_H__
+#define __ACDEBUG_H__
+
+/* The debugger is used in conjunction with the disassembler most of time */
+
+#ifdef ACPI_DISASSEMBLER
+#include "acdisasm.h"
+#endif
+
+
+#define ACPI_DEBUG_BUFFER_SIZE      0x4000      /* 16K buffer for return objects */
+#define ACPI_DEBUG_LENGTH_FORMAT    " (%.4X bits, %.3X bytes)"
+
+typedef struct acpi_db_command_info
+{
+    const char              *Name;          /* Command Name */
+    UINT8                   MinArgs;        /* Minimum arguments required */
+
+} ACPI_DB_COMMAND_INFO;
+
+typedef struct acpi_db_command_help
+{
+    UINT8                   LineCount;      /* Number of help lines */
+    char                    *Invocation;    /* Command Invocation */
+    char                    *Description;   /* Command Description */
+
+} ACPI_DB_COMMAND_HELP;
+
+typedef struct acpi_db_argument_info
+{
+    const char              *Name;          /* Argument Name */
+
+} ACPI_DB_ARGUMENT_INFO;
+
+typedef struct acpi_db_execute_walk
+{
+    UINT32                  Count;
+    UINT32                  MaxCount;
+    char                    NameSeg[ACPI_NAMESEG_SIZE + 1];
+
+} ACPI_DB_EXECUTE_WALK;
+
+
+#define PARAM_LIST(pl)                  pl
+
+#define EX_NO_SINGLE_STEP               1
+#define EX_SINGLE_STEP                  2
+#define EX_ALL                          4
+
+
+/*
+ * dbxface - external debugger interfaces
+ */
+ACPI_DBR_DEPENDENT_RETURN_OK (
+ACPI_STATUS
+AcpiDbSingleStep (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op,
+    UINT32                  OpType))
+
+ACPI_DBR_DEPENDENT_RETURN_VOID (
+void
+AcpiDbSignalBreakPoint (
+    ACPI_WALK_STATE         *WalkState))
+
+
+/*
+ * dbcmds - debug commands and output routines
+ */
+ACPI_NAMESPACE_NODE *
+AcpiDbConvertToNode (
+    char                    *InString);
+
+void
+AcpiDbDisplayTableInfo (
+    char                    *TableArg);
+
+void
+AcpiDbDisplayTemplate (
+    char                    *BufferArg);
+
+void
+AcpiDbUnloadAcpiTable (
+    char                    *Name);
+
+void
+AcpiDbSendNotify (
+    char                    *Name,
+    UINT32                  Value);
+
+void
+AcpiDbDisplayInterfaces (
+    char                    *ActionArg,
+    char                    *InterfaceNameArg);
+
+ACPI_STATUS
+AcpiDbSleep (
+    char                    *ObjectArg);
+
+void
+AcpiDbTrace (
+    char                    *EnableArg,
+    char                    *MethodArg,
+    char                    *OnceArg);
+
+void
+AcpiDbDisplayLocks (
+    void);
+
+void
+AcpiDbDisplayResources (
+    char                    *ObjectArg);
+
+ACPI_HW_DEPENDENT_RETURN_VOID (
+void
+AcpiDbDisplayGpes (
+    void))
+
+void
+AcpiDbDisplayHandlers (
+    void);
+
+ACPI_HW_DEPENDENT_RETURN_VOID (
+void
+AcpiDbGenerateGpe (
+    char                    *GpeArg,
+    char                    *BlockArg))
+
+ACPI_HW_DEPENDENT_RETURN_VOID (
+void
+AcpiDbGenerateSci (
+    void))
+
+void
+AcpiDbExecuteTest (
+    char                    *TypeArg);
+
+
+/*
+ * dbconvert - miscellaneous conversion routines
+ */
+ACPI_STATUS
+AcpiDbHexCharToValue (
+    int                     HexChar,
+    UINT8                   *ReturnValue);
+
+ACPI_STATUS
+AcpiDbConvertToPackage (
+    char                    *String,
+    ACPI_OBJECT             *Object);
+
+ACPI_STATUS
+AcpiDbConvertToObject (
+    ACPI_OBJECT_TYPE        Type,
+    char                    *String,
+    ACPI_OBJECT             *Object);
+
+UINT8 *
+AcpiDbEncodePldBuffer (
+    ACPI_PLD_INFO           *PldInfo);
+
+void
+AcpiDbDumpPldBuffer (
+    ACPI_OBJECT             *ObjDesc);
+
+
+/*
+ * dbmethod - control method commands
+ */
+void
+AcpiDbSetMethodBreakpoint (
+    char                    *Location,
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op);
+
+void
+AcpiDbSetMethodCallBreakpoint (
+    ACPI_PARSE_OBJECT       *Op);
+
+void
+AcpiDbSetMethodData (
+    char                    *TypeArg,
+    char                    *IndexArg,
+    char                    *ValueArg);
+
+ACPI_STATUS
+AcpiDbDisassembleMethod (
+    char                    *Name);
+
+void
+AcpiDbDisassembleAml (
+    char                    *Statements,
+    ACPI_PARSE_OBJECT       *Op);
+
+void
+AcpiDbEvaluatePredefinedNames (
+    void);
+
+void
+AcpiDbEvaluateAll (
+    char                    *NameSeg);
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 
 
 /*

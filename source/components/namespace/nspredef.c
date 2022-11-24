@@ -4,6 +4,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -214,6 +215,227 @@ Exit:
     }
 
     return (Status);
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#define ACPI_CREATE_PREDEFINED_TABLE
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acnamesp.h"
+#include "acpredef.h"
+
+
+#define _COMPONENT          ACPI_NAMESPACE
+        ACPI_MODULE_NAME    ("nspredef")
+
+
+/*******************************************************************************
+ *
+ * This module validates predefined ACPI objects that appear in the namespace,
+ * at the time they are evaluated (via AcpiEvaluateObject). The purpose of this
+ * validation is to detect problems with BIOS-exposed predefined ACPI objects
+ * before the results are returned to the ACPI-related drivers.
+ *
+ * There are several areas that are validated:
+ *
+ *  1) The number of input arguments as defined by the method/object in the
+ *     ASL is validated against the ACPI specification.
+ *  2) The type of the return object (if any) is validated against the ACPI
+ *     specification.
+ *  3) For returned package objects, the count of package elements is
+ *     validated, as well as the type of each package element. Nested
+ *     packages are supported.
+ *
+ * For any problems found, a warning message is issued.
+ *
+ ******************************************************************************/
+
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiNsCheckReference (
+    ACPI_EVALUATE_INFO          *Info,
+    ACPI_OPERAND_OBJECT         *ReturnObject);
+
+static UINT32
+AcpiNsGetBitmappedType (
+    ACPI_OPERAND_OBJECT         *ReturnObject);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsCheckReturnValue
+ *
+ * PARAMETERS:  Node            - Namespace node for the method/object
+ *              Info            - Method execution information block
+ *              UserParamCount  - Number of parameters actually passed
+ *              ReturnStatus    - Status from the object evaluation
+ *              ReturnObjectPtr - Pointer to the object returned from the
+ *                                evaluation of a method or object
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Check the value returned from a predefined name.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiNsCheckReturnValue (
+    ACPI_NAMESPACE_NODE         *Node,
+    ACPI_EVALUATE_INFO          *Info,
+    UINT32                      UserParamCount,
+    ACPI_STATUS                 ReturnStatus,
+    ACPI_OPERAND_OBJECT         **ReturnObjectPtr)
+{
+    ACPI_STATUS                 Status;
+    const ACPI_PREDEFINED_INFO  *Predefined;
+
+    ACPI_FUNCTION_TRACE (NsCheckReturnValue);
+
+    /* If not a predefined name, we cannot validate the return object */
+
+    Predefined = Info->Predefined;
+    if (!Predefined)
+    {
+        return_ACPI_STATUS (AE_OK);
+    }
+
+    /*
+     * If the method failed or did not actually return an object, we cannot
+     * validate the return object
+     */
+    if ((ReturnStatus != AE_OK) &&
+        (ReturnStatus != AE_CTRL_RETURN_VALUE))
+    {
+        return_ACPI_STATUS (AE_OK);
+    }
+
+    /*
+     * Return value validation and possible repair.
+     *
+     * 1) Don't perform return value validation/repair if this feature
+     * has been disabled via a global option.
+     *
+     * 2) We have a return value, but if one wasn't expected, just exit,
+     * this is not a problem. For example, if the "Implicit Return"
+     * feature is enabled, methods will always return a value.
+     *
+     * 3) If the return value can be of any type, then we cannot perform
+     * any validation, just exit.
+     */
+    if (AcpiGbl_DisableAutoRepair ||
+        (!Predefined->Info.ExpectedBtypes) ||
+        (Predefined->Info.ExpectedBtypes == ACPI_RTYPE_ALL))
+    {
+        return_ACPI_STATUS (AE_OK);
+    }
+
+    /*
+     * Check that the type of the main return object is what is expected
+     * for this predefined name
+     */
+    Status = AcpiNsCheckObjectType (Info, ReturnObjectPtr,
+        Predefined->Info.ExpectedBtypes, ACPI_NOT_PACKAGE_ELEMENT);
+    if (ACPI_FAILURE (Status))
+    {
+        goto Exit;
+    }
+
+    /*
+     *
+     * 4) If there is no return value and it is optional, just return
+     * AE_OK (_WAK).
+     */
+    if (!(*ReturnObjectPtr))
+    {
+        goto Exit;
+    }
+
+    /*
+     * For returned Package objects, check the type of all sub-objects.
+     * Note: Package may have been newly created by call above.
+     */
+    if ((*ReturnObjectPtr)->Common.Type == ACPI_TYPE_PACKAGE)
+    {
+        Info->ParentPackage = *ReturnObjectPtr;
+        Status = AcpiNsCheckPackage (Info, ReturnObjectPtr);
+        if (ACPI_FAILURE (Status))
+        {
+            /* We might be able to fix some errors */
+
+            if ((Status != AE_AML_OPERAND_TYPE) &&
+                (Status != AE_AML_OPERAND_VALUE))
+            {
+                goto Exit;
+            }
+        }
+    }
+
+    /*
+     * The return object was OK, or it was successfully repaired above.
+     * Now make some additional checks such as verifying that package
+     * objects are sorted correctly (if required) or buffer objects have
+     * the correct data width (bytes vs. dwords). These repairs are
+     * performed on a per-name basis, i.e., the code is specific to
+     * particular predefined names.
+     */
+    Status = AcpiNsComplexRepairs (Info, Node, Status, ReturnObjectPtr);
+
+Exit:
+    /*
+     * If the object validation failed or if we successfully repaired one
+     * or more objects, mark the parent node to suppress further warning
+     * messages during the next evaluation of the same method/object.
+     */
+    if (ACPI_FAILURE (Status) ||
+       (Info->ReturnFlags & ACPI_OBJECT_REPAIRED))
+    {
+        Node->Flags |= ANOBJ_EVALUATED;
+    }
+
+    return_ACPI_STATUS (Status);
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
 }
 
 

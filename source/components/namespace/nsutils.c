@@ -5,6 +5,7 @@
  *
  *****************************************************************************/
 
+<<<<<<< HEAD   (d64c66 Import ACPICA 20200110 sources)
 /*
  * Copyright (C) 2000 - 2020, Intel Corp.
  * All rights reserved.
@@ -389,6 +390,400 @@ AcpiNsBuildInternalName (
  * PARAMETERS:  *ExternalName           - External representation of name
  *              **Converted Name        - Where to return the resulting
  *                                        internal represention of the name
+=======
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
+ * All rights reserved.
+ *
+*
+ *****************************************************************************
+ *
+*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
+
+#include "acpi.h"
+#include "accommon.h"
+#include "acnamesp.h"
+#include "amlcode.h"
+
+#define _COMPONENT          ACPI_NAMESPACE
+        ACPI_MODULE_NAME    ("nsutils")
+
+/* Local prototypes */
+
+#ifdef ACPI_OBSOLETE_FUNCTIONS
+ACPI_NAME
+AcpiNsFindParentName (
+    ACPI_NAMESPACE_NODE     *NodeToSearch);
+#endif
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsPrintNodePathname
+ *
+ * PARAMETERS:  Node            - Object
+ *              Message         - Prefix message
+ *
+ * DESCRIPTION: Print an object's full namespace pathname
+ *              Manages allocation/freeing of a pathname buffer
+ *
+ ******************************************************************************/
+
+void
+AcpiNsPrintNodePathname (
+    ACPI_NAMESPACE_NODE     *Node,
+    const char              *Message)
+{
+    ACPI_BUFFER             Buffer;
+    ACPI_STATUS             Status;
+
+
+    if (!Node)
+    {
+        AcpiOsPrintf ("[NULL NAME]");
+        return;
+    }
+
+    /* Convert handle to full pathname and print it (with supplied message) */
+
+    Buffer.Length = ACPI_ALLOCATE_LOCAL_BUFFER;
+
+    Status = AcpiNsHandleToPathname (Node, &Buffer, TRUE);
+    if (ACPI_SUCCESS (Status))
+    {
+        if (Message)
+        {
+            AcpiOsPrintf ("%s ", Message);
+        }
+
+        AcpiOsPrintf ("%s", (char *) Buffer.Pointer);
+        ACPI_FREE (Buffer.Pointer);
+    }
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsGetType
+ *
+ * PARAMETERS:  Node        - Parent Node to be examined
+ *
+ * RETURN:      Type field from Node whose handle is passed
+ *
+ * DESCRIPTION: Return the type of a Namespace node
+ *
+ ******************************************************************************/
+
+ACPI_OBJECT_TYPE
+AcpiNsGetType (
+    ACPI_NAMESPACE_NODE     *Node)
+{
+    ACPI_FUNCTION_TRACE (NsGetType);
+
+
+    if (!Node)
+    {
+        ACPI_WARNING ((AE_INFO, "Null Node parameter"));
+        return_UINT8 (ACPI_TYPE_ANY);
+    }
+
+    return_UINT8 (Node->Type);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsLocal
+ *
+ * PARAMETERS:  Type        - A namespace object type
+ *
+ * RETURN:      LOCAL if names must be found locally in objects of the
+ *              passed type, 0 if enclosing scopes should be searched
+ *
+ * DESCRIPTION: Returns scope rule for the given object type.
+ *
+ ******************************************************************************/
+
+UINT32
+AcpiNsLocal (
+    ACPI_OBJECT_TYPE        Type)
+{
+    ACPI_FUNCTION_TRACE (NsLocal);
+
+
+    if (!AcpiUtValidObjectType (Type))
+    {
+        /* Type code out of range  */
+
+        ACPI_WARNING ((AE_INFO, "Invalid Object Type 0x%X", Type));
+        return_UINT32 (ACPI_NS_NORMAL);
+    }
+
+    return_UINT32 (AcpiGbl_NsProperties[Type] & ACPI_NS_LOCAL);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsGetInternalNameLength
+ *
+ * PARAMETERS:  Info            - Info struct initialized with the
+ *                                external name pointer.
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Calculate the length of the internal (AML) namestring
+ *              corresponding to the external (ASL) namestring.
+ *
+ ******************************************************************************/
+
+void
+AcpiNsGetInternalNameLength (
+    ACPI_NAMESTRING_INFO    *Info)
+{
+    const char              *NextExternalChar;
+    UINT32                  i;
+
+
+    ACPI_FUNCTION_ENTRY ();
+
+
+    NextExternalChar = Info->ExternalName;
+    Info->NumCarats = 0;
+    Info->NumSegments = 0;
+    Info->FullyQualified = FALSE;
+
+    /*
+     * For the internal name, the required length is 4 bytes per segment,
+     * plus 1 each for RootPrefix, MultiNamePrefixOp, segment count,
+     * trailing null (which is not really needed, but no there's harm in
+     * putting it there)
+     *
+     * strlen() + 1 covers the first NameSeg, which has no path separator
+     */
+    if (ACPI_IS_ROOT_PREFIX (*NextExternalChar))
+    {
+        Info->FullyQualified = TRUE;
+        NextExternalChar++;
+
+        /* Skip redundant RootPrefix, like \\_SB.PCI0.SBRG.EC0 */
+
+        while (ACPI_IS_ROOT_PREFIX (*NextExternalChar))
+        {
+            NextExternalChar++;
+        }
+    }
+    else
+    {
+        /* Handle Carat prefixes */
+
+        while (ACPI_IS_PARENT_PREFIX (*NextExternalChar))
+        {
+            Info->NumCarats++;
+            NextExternalChar++;
+        }
+    }
+
+    /*
+     * Determine the number of ACPI name "segments" by counting the number of
+     * path separators within the string. Start with one segment since the
+     * segment count is [(# separators) + 1], and zero separators is ok.
+     */
+    if (*NextExternalChar)
+    {
+        Info->NumSegments = 1;
+        for (i = 0; NextExternalChar[i]; i++)
+        {
+            if (ACPI_IS_PATH_SEPARATOR (NextExternalChar[i]))
+            {
+                Info->NumSegments++;
+            }
+        }
+    }
+
+    Info->Length = (ACPI_NAMESEG_SIZE * Info->NumSegments) +
+        4 + Info->NumCarats;
+
+    Info->NextExternalChar = NextExternalChar;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsBuildInternalName
+ *
+ * PARAMETERS:  Info            - Info struct fully initialized
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Construct the internal (AML) namestring
+ *              corresponding to the external (ASL) namestring.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiNsBuildInternalName (
+    ACPI_NAMESTRING_INFO    *Info)
+{
+    UINT32                  NumSegments = Info->NumSegments;
+    char                    *InternalName = Info->InternalName;
+    const char              *ExternalName = Info->NextExternalChar;
+    char                    *Result = NULL;
+    UINT32                  i;
+
+
+    ACPI_FUNCTION_TRACE (NsBuildInternalName);
+
+
+    /* Setup the correct prefixes, counts, and pointers */
+
+    if (Info->FullyQualified)
+    {
+        InternalName[0] = AML_ROOT_PREFIX;
+
+        if (NumSegments <= 1)
+        {
+            Result = &InternalName[1];
+        }
+        else if (NumSegments == 2)
+        {
+            InternalName[1] = AML_DUAL_NAME_PREFIX;
+            Result = &InternalName[2];
+        }
+        else
+        {
+            InternalName[1] = AML_MULTI_NAME_PREFIX;
+            InternalName[2] = (char) NumSegments;
+            Result = &InternalName[3];
+        }
+    }
+    else
+    {
+        /*
+         * Not fully qualified.
+         * Handle Carats first, then append the name segments
+         */
+        i = 0;
+        if (Info->NumCarats)
+        {
+            for (i = 0; i < Info->NumCarats; i++)
+            {
+                InternalName[i] = AML_PARENT_PREFIX;
+            }
+        }
+
+        if (NumSegments <= 1)
+        {
+            Result = &InternalName[i];
+        }
+        else if (NumSegments == 2)
+        {
+            InternalName[i] = AML_DUAL_NAME_PREFIX;
+            Result = &InternalName[(ACPI_SIZE) i+1];
+        }
+        else
+        {
+            InternalName[i] = AML_MULTI_NAME_PREFIX;
+            InternalName[(ACPI_SIZE) i+1] = (char) NumSegments;
+            Result = &InternalName[(ACPI_SIZE) i+2];
+        }
+    }
+
+    /* Build the name (minus path separators) */
+
+    for (; NumSegments; NumSegments--)
+    {
+        for (i = 0; i < ACPI_NAMESEG_SIZE; i++)
+        {
+            if (ACPI_IS_PATH_SEPARATOR (*ExternalName) ||
+               (*ExternalName == 0))
+            {
+                /* Pad the segment with underscore(s) if segment is short */
+
+                Result[i] = '_';
+            }
+            else
+            {
+                /* Convert the character to uppercase and save it */
+
+                Result[i] = (char) toupper ((int) *ExternalName);
+                ExternalName++;
+            }
+        }
+
+        /* Now we must have a path separator, or the pathname is bad */
+
+        if (!ACPI_IS_PATH_SEPARATOR (*ExternalName) &&
+            (*ExternalName != 0))
+        {
+            return_ACPI_STATUS (AE_BAD_PATHNAME);
+        }
+
+        /* Move on the next segment */
+
+        ExternalName++;
+        Result += ACPI_NAMESEG_SIZE;
+    }
+
+    /* Terminate the string */
+
+    *Result = 0;
+
+    if (Info->FullyQualified)
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "Returning [%p] (abs) \"\\%s\"\n",
+            InternalName, InternalName));
+    }
+    else
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "Returning [%p] (rel) \"%s\"\n",
+            InternalName, InternalName));
+    }
+
+    return_ACPI_STATUS (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiNsInternalizeName
+ *
+ * PARAMETERS:  *ExternalName           - External representation of name
+ *              **Converted Name        - Where to return the resulting
+ *                                        internal representation of the name
+>>>>>>> BRANCH (a8f750 Project import generated by Copybara.)
  *
  * RETURN:      Status
  *
