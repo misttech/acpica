@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -153,7 +161,7 @@ AcpiExSystemWaitMutex (
  *
  * FUNCTION:    AcpiExSystemDoStall
  *
- * PARAMETERS:  HowLong         - The amount of time to stall,
+ * PARAMETERS:  HowLongUs       - The amount of time to stall,
  *                                in microseconds
  *
  * RETURN:      Status
@@ -168,7 +176,7 @@ AcpiExSystemWaitMutex (
 
 ACPI_STATUS
 AcpiExSystemDoStall (
-    UINT32                  HowLong)
+    UINT32                  HowLongUs)
 {
     ACPI_STATUS             Status = AE_OK;
 
@@ -176,21 +184,26 @@ AcpiExSystemDoStall (
     ACPI_FUNCTION_ENTRY ();
 
 
-    if (HowLong > 255) /* 255 microseconds */
+    if (HowLongUs > 255)
     {
         /*
-         * Longer than 255 usec, this is an error
+         * Longer than 255 microseconds, this is an error
          *
          * (ACPI specifies 100 usec as max, but this gives some slack in
          * order to support existing BIOSs)
          */
         ACPI_ERROR ((AE_INFO,
-            "Time parameter is too large (%u)", HowLong));
+            "Time parameter is too large (%u)", HowLongUs));
         Status = AE_AML_OPERAND_VALUE;
     }
     else
     {
-        AcpiOsStall (HowLong);
+        if (HowLongUs > 100)
+	{
+            ACPI_WARNING ((AE_INFO,
+                "Time parameter %u us > 100 us violating ACPI spec, please fix the firmware.", HowLongUs));
+	}
+        AcpiOsStall (HowLongUs);
     }
 
     return (Status);
@@ -201,7 +214,7 @@ AcpiExSystemDoStall (
  *
  * FUNCTION:    AcpiExSystemDoSleep
  *
- * PARAMETERS:  HowLong         - The amount of time to sleep,
+ * PARAMETERS:  HowLongMs       - The amount of time to sleep,
  *                                in milliseconds
  *
  * RETURN:      None
@@ -212,7 +225,7 @@ AcpiExSystemDoStall (
 
 ACPI_STATUS
 AcpiExSystemDoSleep (
-    UINT64                  HowLong)
+    UINT64                  HowLongMs)
 {
     ACPI_FUNCTION_ENTRY ();
 
@@ -225,12 +238,12 @@ AcpiExSystemDoSleep (
      * For compatibility with other ACPI implementations and to prevent
      * accidental deep sleeps, limit the sleep time to something reasonable.
      */
-    if (HowLong > ACPI_MAX_SLEEP)
+    if (HowLongMs > ACPI_MAX_SLEEP)
     {
-        HowLong = ACPI_MAX_SLEEP;
+        HowLongMs = ACPI_MAX_SLEEP;
     }
 
-    AcpiOsSleep (HowLong);
+    AcpiOsSleep (HowLongMs);
 
     /* And now we must get the interpreter again */
 

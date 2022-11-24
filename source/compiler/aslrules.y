@@ -7,10 +7,17 @@ NoEcho('
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -26,19 +33,20 @@ NoEcho('
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 ')
 
@@ -149,11 +157,11 @@ Target
     | ','                           {$$ = TrCreateNullTargetOp ();} /* Placeholder is a ZeroOp object */
     | ',' SuperName                 {$$ = TrSetOpFlags ($2, OP_IS_TARGET);}
     ;
-
+/*
 RequiredTarget
     : ',' SuperName                 {$$ = TrSetOpFlags ($2, OP_IS_TARGET);}
     ;
-
+*/
 TermArg
     : SimpleName                    {$$ = TrSetOpFlags ($1, OP_IS_TERM_ARG);}
     | Type2Opcode                   {$$ = TrSetOpFlags ($1, OP_IS_TERM_ARG);}
@@ -309,14 +317,16 @@ ParameterTypePackage
 
 ParameterTypePackageList
     :                               {$$ = NULL;}
-    | ObjectTypeKeyword             {$$ = $1;}
-    | '{' ParameterTypePackage '}'  {$$ = $2;}
+    | ObjectTypeKeyword             {$$ = TrLinkOpChildren (
+                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$1);}
+    | '{' ParameterTypePackage '}'  {$$ = TrLinkOpChildren (
+                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$2);}
     ;
 
+
 OptionalParameterTypePackage
-    :                               {$$ = TrCreateLeafOp (PARSEOP_DEFAULT_ARG);}
-    | ',' ParameterTypePackageList  {$$ = TrLinkOpChildren (
-                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$2);}
+    :                               {$$ = NULL;}
+    | ',' ParameterTypePackageList  {$$ = $2;}
     ;
 
     /* Rules for specifying the types for method arguments */
@@ -329,14 +339,15 @@ ParameterTypesPackage
 
 ParameterTypesPackageList
     :                               {$$ = NULL;}
-    | ObjectTypeKeyword             {$$ = $1;}
-    | '{' ParameterTypesPackage '}' {$$ = $2;}
+    | ObjectTypeKeyword             {$$ = TrLinkOpChildren (
+                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$1);}
+    | '{' ParameterTypesPackage '}' {$$ = TrLinkOpChildren (
+                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$2);}
     ;
 
 OptionalParameterTypesPackage
-    :                               {$$ = TrCreateLeafOp (PARSEOP_DEFAULT_ARG);}
-    | ',' ParameterTypesPackageList {$$ = TrLinkOpChildren (
-                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),1,$2);}
+    :                               {$$ = NULL;}
+    | ',' ParameterTypesPackageList {$$ = $2;}
     ;
 
 /*
@@ -406,6 +417,10 @@ IntegerData
 StringData
     : Type2StringOpcode             {$$ = TrSetOpFlags ($1, OP_COMPILE_TIME_CONST);}
     | String                        {}
+    ;
+
+StringLiteral
+    : String                        {}
     ;
 
 ByteConst
@@ -596,7 +611,6 @@ Type1Opcode
     | FatalTerm                     {}
     | ForTerm                       {}
     | ElseIfTerm                    {}
-    | LoadTerm                      {}
     | NoOpTerm                      {}
     | NotifyTerm                    {}
     | ReleaseTerm                   {}
@@ -615,6 +629,7 @@ Type2Opcode
     | CondRefOfTerm                 {}
     | CopyObjectTerm                {}
     | DerefOfTerm                   {}
+    | LoadTerm                      {} /* Moved from Type1 -- now returns an integer (ACPI 6.4) */
     | ObjectTypeTerm                {}
     | RefOfTerm                     {}
     | SizeOfTerm                    {}

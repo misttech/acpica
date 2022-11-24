@@ -1,6 +1,6 @@
-Source: https://acpica.org/sites/acpica/files/acpica-unix2-20200110.tar.gz
+Source: https://github.com/acpica/acpica
 License: BSD
-Version: 20200110
+Version: See `GitOrigin-RevId` in commits.
 
 Modifications:
 - Added README.fuchsia

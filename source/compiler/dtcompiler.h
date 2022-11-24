@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #define __DTCOMPILER_H__
 
@@ -349,7 +357,6 @@ DtCreateTableUnit (
 
 /* dtparser - lex/yacc files */
 
-UINT64                      DtCompilerParserResult; /* Expression return value */
 int
 DtCompilerParserparse (
     void);
@@ -455,7 +462,23 @@ DtCompileRsdp (
     DT_FIELD                **PFieldList);
 
 ACPI_STATUS
+DtCompileAest (
+    void                    **PFieldList);
+
+ACPI_STATUS
+DtCompileApmt (
+    void                    **PFieldList);
+
+ACPI_STATUS
 DtCompileAsf (
+    void                    **PFieldList);
+
+ACPI_STATUS
+DtCompileCdat (
+    void                    **PFieldList);
+
+ACPI_STATUS
+DtCompileCedt (
     void                    **PFieldList);
 
 ACPI_STATUS
@@ -535,11 +558,11 @@ DtCompileMsct (
     void                    **PFieldList);
 
 ACPI_STATUS
-DtCompileMtmr (
+DtCompileNfit (
     void                    **PFieldList);
 
 ACPI_STATUS
-DtCompileNfit (
+DtCompileNhlt (
     void                    **PFieldList);
 
 ACPI_STATUS
@@ -551,11 +574,23 @@ DtCompilePdtt (
     void                    **PFieldList);
 
 ACPI_STATUS
+DtCompilePhat (
+    void                    **PFieldList);
+
+ACPI_STATUS
 DtCompilePmtt (
     void                    **PFieldList);
 
 ACPI_STATUS
 DtCompilePptt (
+    void                    **PFieldList);
+
+ACPI_STATUS
+DtCompilePrmt (
+    void                    **PFieldList);
+
+ACPI_STATUS
+DtCompileRgrt (
     void                    **PFieldList);
 
 ACPI_STATUS
@@ -587,6 +622,10 @@ DtCompileStao (
     void                    **PFieldList);
 
 ACPI_STATUS
+DtCompileSvkl (
+    void                    **PFieldList);
+
+ACPI_STATUS
 DtCompileTcpa (
     void                    **PFieldList);
 
@@ -599,7 +638,7 @@ DtCompileUefi (
     void                    **PFieldList);
 
 ACPI_STATUS
-DtCompileVrtc (
+DtCompileViot (
     void                    **PFieldList);
 
 ACPI_STATUS
@@ -626,10 +665,17 @@ DtGetGenericTableInfo (
 
 /* ACPI Table templates */
 
+extern const unsigned char  TemplateAest[];
+extern const unsigned char  TemplateAgdi[];
+extern const unsigned char  TemplateApmt[];
 extern const unsigned char  TemplateAsf[];
 extern const unsigned char  TemplateBoot[];
+extern const unsigned char  TemplateBdat[];
 extern const unsigned char  TemplateBert[];
 extern const unsigned char  TemplateBgrt[];
+extern const unsigned char  TemplateCcel[];
+extern const unsigned char  TemplateCdat[];
+extern const unsigned char  TemplateCedt[];
 extern const unsigned char  TemplateCpep[];
 extern const unsigned char  TemplateCsrt[];
 extern const unsigned char  TemplateDbg2[];
@@ -654,13 +700,16 @@ extern const unsigned char  TemplateMchi[];
 extern const unsigned char  TemplateMpst[];
 extern const unsigned char  TemplateMsct[];
 extern const unsigned char  TemplateMsdm[];
-extern const unsigned char  TemplateMtmr[];
 extern const unsigned char  TemplateNfit[];
+extern const unsigned char  TemplateNhlt[];
 extern const unsigned char  TemplatePcct[];
 extern const unsigned char  TemplatePdtt[];
+extern const unsigned char  TemplatePhat[];
 extern const unsigned char  TemplatePmtt[];
 extern const unsigned char  TemplatePptt[];
+extern const unsigned char  TemplatePrmt[];
 extern const unsigned char  TemplateRasf[];
+extern const unsigned char  TemplateRgrt[];
 extern const unsigned char  TemplateRsdt[];
 extern const unsigned char  TemplateS3pt[];
 extern const unsigned char  TemplateSbst[];
@@ -672,10 +721,12 @@ extern const unsigned char  TemplateSpcr[];
 extern const unsigned char  TemplateSpmi[];
 extern const unsigned char  TemplateSrat[];
 extern const unsigned char  TemplateStao[];
+extern const unsigned char  TemplateSvkl[];
 extern const unsigned char  TemplateTcpa[];
+extern const unsigned char  TemplateTdel[];
 extern const unsigned char  TemplateTpm2[];
 extern const unsigned char  TemplateUefi[];
-extern const unsigned char  TemplateVrtc[];
+extern const unsigned char  TemplateViot[];
 extern const unsigned char  TemplateWaet[];
 extern const unsigned char  TemplateWdat[];
 extern const unsigned char  TemplateWddt[];
