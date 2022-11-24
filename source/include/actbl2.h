@@ -1442,12 +1442,14 @@ enum AcpiMadtLpcPicVersion {
     ACPI_MADT_LPC_PIC_VERSION_RESERVED   = 2	/* 2 and greater are reserved */
 };
 
+#if 0 // Disabled on Fuchsia because the compiler dislikes the flexible array member.
 /* 80: OEM data */
 
 typedef struct acpi_madt_oem_data
 {
     UINT8                   OemData[];
 } ACPI_MADT_OEM_DATA;
+#endif
 
 
 /*
