@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #ifndef __ACRESTYP_H__
 #define __ACRESTYP_H__
@@ -481,7 +489,7 @@ typedef struct acpi_resource_gpio
 #define ACPI_IO_RESTRICT_NONE_PRESERVE          3
 
 
-/* Common structure for I2C, SPI, and UART serial descriptors */
+/* Common structure for I2C, SPI, UART, CSI2 serial descriptors */
 
 #define ACPI_RESOURCE_SERIAL_COMMON \
     UINT8                           RevisionId; \
@@ -506,6 +514,7 @@ typedef struct acpi_resource_common_serialbus
 #define ACPI_RESOURCE_SERIAL_TYPE_I2C           1
 #define ACPI_RESOURCE_SERIAL_TYPE_SPI           2
 #define ACPI_RESOURCE_SERIAL_TYPE_UART          3
+#define ACPI_RESOURCE_SERIAL_TYPE_CSI2          4
 
 /* Values for SlaveMode field above */
 
@@ -619,6 +628,14 @@ typedef struct acpi_resource_uart_serialbus
 #define ACPI_UART_DATA_TERMINAL_READY           (1<<5)
 #define ACPI_UART_CLEAR_TO_SEND                 (1<<6)
 #define ACPI_UART_REQUEST_TO_SEND               (1<<7)
+
+typedef struct acpi_resource_csi2_serialbus
+{
+    ACPI_RESOURCE_SERIAL_COMMON
+    UINT8                           LocalPortInstance;
+    UINT8                           PhyType;
+
+} ACPI_RESOURCE_CSI2_SERIALBUS;
 
 typedef struct acpi_resource_pin_function
 {
@@ -760,6 +777,7 @@ typedef union acpi_resource_data
     ACPI_RESOURCE_I2C_SERIALBUS             I2cSerialBus;
     ACPI_RESOURCE_SPI_SERIALBUS             SpiSerialBus;
     ACPI_RESOURCE_UART_SERIALBUS            UartSerialBus;
+    ACPI_RESOURCE_CSI2_SERIALBUS            Csi2SerialBus;
     ACPI_RESOURCE_COMMON_SERIALBUS          CommonSerialBus;
     ACPI_RESOURCE_PIN_FUNCTION              PinFunction;
     ACPI_RESOURCE_PIN_CONFIG                PinConfig;

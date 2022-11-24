@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,23 +30,25 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "aslcompiler.h"
 #include "acapps.h"
 #include "acdisasm.h"
+#include "acglobal.h"
 
 #define _COMPONENT          ACPI_COMPILER
         ACPI_MODULE_NAME    ("asloption")
@@ -64,7 +73,7 @@ AslDoResponseFile (
 
 
 #define ASL_TOKEN_SEPARATORS    " \t\n"
-#define ASL_SUPPORTED_OPTIONS   "@:a:b|c|d^D:e:f^gh^i|I:l^m:no|p:P^q^r:s|t|T+G^v^w|x:z"
+#define ASL_SUPPORTED_OPTIONS   "@:a:b|c|d^D:e:f^gh^i|I:l^m:no|p:P^q^r:s|:t|T+G^v^w|x:z"
 
 
 /*******************************************************************************
@@ -158,7 +167,7 @@ AslDoOptions (
     BOOLEAN                 IsResponseFile)
 {
     ACPI_STATUS             Status;
-    UINT32                  j;
+    INT32                  j;
 
 
     /* Get the command line options */
@@ -254,7 +263,6 @@ AslDoOptions (
             {
                 return (-1);
             }
-
             AslGbl_PruneType = (UINT8) strtoul (AcpiGbl_Optarg, NULL, 0);
             break;
 
@@ -331,6 +339,28 @@ AslDoOptions (
 
             AslGbl_DoCompile = FALSE;
             AcpiGbl_CstyleDisassembly = FALSE;
+            break;
+
+        case 's':   /* Specify table signature (Only supported for CDAT table) */
+
+            /* Get the required argument */
+
+            if (AcpiGetoptArgument (argc, argv))
+            {
+                return (-1);
+            }
+
+            /* Check for exact string "CDAT" (upper or lower case) */
+
+            AcpiGbl_CDAT = ACPI_CAST_PTR (char, &AcpiGbl_Optarg);
+            if (AcpiUtStricmp (AcpiGbl_Optarg, ACPI_SIG_CDAT))
+            {
+                printf ("\nUnknown table signature: %s\n", AcpiGbl_Optarg);
+                return (-1);
+            }
+
+            AcpiGbl_CDAT = malloc (5);
+            AcpiUtSafeStrncpy ((char *) AcpiGbl_CDAT, ACPI_SIG_CDAT, 5);
             break;
 
         default:
@@ -725,7 +755,7 @@ AslDoOptions (
             AslGbl_HexOutputFlag = HEX_OUTPUT_C;
             break;
 
-    case 'p': /* data table flex/bison prototype */
+        case 'p': /* data table flex/bison prototype */
 
             AslGbl_DtLexBisonPrototype = TRUE;
             break;
@@ -836,7 +866,7 @@ AslDoOptions (
                 return (-1);
             }
 
-            Status = AslExpectException (AcpiGbl_Optarg);
+            Status = AslLogExpectedException (AcpiGbl_Optarg);
             if (ACPI_FAILURE (Status))
             {
                 return (-1);

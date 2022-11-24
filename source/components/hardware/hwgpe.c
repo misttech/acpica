@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -142,7 +150,7 @@ AcpiHwLowSetGpe (
             return (AE_BAD_PARAMETER);
         }
 
-        /*lint -fallthrough */
+        ACPI_FALLTHROUGH;
 
     case ACPI_GPE_ENABLE:
 
@@ -525,6 +533,58 @@ AcpiHwEnableWakeupGpeBlock (
 
 /******************************************************************************
  *
+ * FUNCTION:    AcpiHwGetGpeBlockStatus
+ *
+ * PARAMETERS:  GpeXruptInfo    - GPE Interrupt info
+ *              GpeBlock        - Gpe Block info
+ *
+ * RETURN:      Success
+ *
+ * DESCRIPTION: Produce a combined GPE status bits mask for the given block.
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiHwGetGpeBlockStatus(
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void *RetPtr)
+{
+    ACPI_GPE_REGISTER_INFO  *GpeRegisterInfo;
+    UINT64                  InEnable;
+    UINT64                  InStatus;
+    ACPI_STATUS             Status;
+    UINT8                   *Ret = RetPtr;
+    UINT32                  i;
+
+
+    /* Examine each GPE Register within the block */
+
+    for (i = 0; i < GpeBlock->RegisterCount; i++)
+    {
+        GpeRegisterInfo = &GpeBlock->RegisterInfo[i];
+
+        Status = AcpiHwRead (&InEnable, &GpeRegisterInfo->EnableAddress);
+        if (ACPI_FAILURE (Status))
+        {
+            continue;
+        }
+
+        Status = AcpiHwRead (&InStatus, &GpeRegisterInfo->StatusAddress);
+        if (ACPI_FAILURE (Status))
+        {
+            continue;
+        }
+
+        *Ret |= InEnable & InStatus;
+    }
+
+    return (AE_OK);
+}
+
+
+/******************************************************************************
+ *
  * FUNCTION:    AcpiHwDisableAllGpes
  *
  * PARAMETERS:  None
@@ -601,6 +661,33 @@ AcpiHwEnableAllWakeupGpes (
 
     Status = AcpiEvWalkGpeList (AcpiHwEnableWakeupGpeBlock, NULL);
     return_ACPI_STATUS (Status);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiHwCheckAllGpes
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Combined status of all GPEs
+ *
+ * DESCRIPTION: Check all enabled GPEs in all GPE blocks and return TRUE if the
+ *              status bit is set for at least one of them of FALSE otherwise.
+ *
+ ******************************************************************************/
+
+UINT8
+AcpiHwCheckAllGpes (
+    void)
+{
+    UINT8                      Ret = 0;
+
+
+    ACPI_FUNCTION_TRACE (AcpiHwCheckAllGpes);
+
+    (void) AcpiEvWalkGpeList (AcpiHwGetGpeBlockStatus, &Ret);
+    return (Ret != 0);
 }
 
 #endif /* !ACPI_REDUCED_HARDWARE */

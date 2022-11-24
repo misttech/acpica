@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #ifndef __ACEXCEP_H__
 #define __ACEXCEP_H__
@@ -72,12 +80,12 @@ typedef struct acpi_exception_info
 {
     char                *Name;
 
-#ifdef ACPI_HELP_APP
+#if defined (ACPI_HELP_APP) || defined (ACPI_ASL_COMPILER)
     char                *Description;
 #endif
 } ACPI_EXCEPTION_INFO;
 
-#ifdef ACPI_HELP_APP
+#if defined (ACPI_HELP_APP) || defined (ACPI_ASL_COMPILER)
 #define EXCEP_TXT(Name,Description)     {Name, Description}
 #else
 #define EXCEP_TXT(Name,Description)     {Name}
@@ -92,11 +100,11 @@ typedef struct acpi_exception_info
 
 #define AE_OK                           (ACPI_STATUS) 0x0000
 
-#define ACPI_ENV_EXCEPTION(Status)      (Status & AE_CODE_ENVIRONMENTAL)
-#define ACPI_AML_EXCEPTION(Status)      (Status & AE_CODE_AML)
-#define ACPI_PROG_EXCEPTION(Status)     (Status & AE_CODE_PROGRAMMER)
-#define ACPI_TABLE_EXCEPTION(Status)    (Status & AE_CODE_ACPI_TABLES)
-#define ACPI_CNTL_EXCEPTION(Status)     (Status & AE_CODE_CONTROL)
+#define ACPI_ENV_EXCEPTION(Status)      (((Status) & AE_CODE_MASK) == AE_CODE_ENVIRONMENTAL)
+#define ACPI_AML_EXCEPTION(Status)      (((Status) & AE_CODE_MASK) == AE_CODE_AML)
+#define ACPI_PROG_EXCEPTION(Status)     (((Status) & AE_CODE_MASK) == AE_CODE_PROGRAMMER)
+#define ACPI_TABLE_EXCEPTION(Status)    (((Status) & AE_CODE_MASK) == AE_CODE_ACPI_TABLES)
+#define ACPI_CNTL_EXCEPTION(Status)     (((Status) & AE_CODE_MASK) == AE_CODE_CONTROL)
 
 
 /*

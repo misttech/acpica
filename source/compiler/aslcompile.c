@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "aslcompiler.h"
 #include "acnamesp.h"
@@ -129,7 +137,7 @@ CmDoCompile (
 
     if (AslGbl_SyntaxError)
     {
-        fprintf (stderr,
+        AslError (ASL_ERROR, ASL_MSG_SYNTAX, NULL,
             "Compiler aborting due to parser-detected syntax error(s)\n");
 
         /* Flag this error in the FileNode for compilation summary */
@@ -138,6 +146,8 @@ CmDoCompile (
         FileNode->ParserErrorDetected = TRUE;
         AslGbl_ParserErrorDetected = TRUE;
         LsDumpParseTree ();
+        AePrintErrorLog(ASL_FILE_STDERR);
+
         goto ErrorExit;
     }
 
@@ -155,6 +165,8 @@ CmDoCompile (
         goto ErrorExit;
     }
 
+    AePrintErrorLog(ASL_FILE_STDERR);
+
     /* Flush out any remaining source after parse tree is complete */
 
     Event = UtBeginEvent ("Flush source input");
@@ -171,9 +183,13 @@ CmDoCompile (
 
     LsDumpParseTree ();
 
+    AslGbl_ParserErrorDetected = FALSE;
+    AslGbl_SyntaxError = FALSE;
+    UtEndEvent (Event);
     UtEndEvent (FullCompile);
-    return (AE_OK);
 
+    AslGbl_ParserErrorDetected = FALSE;
+    AslGbl_SyntaxError = FALSE;
 ErrorExit:
     UtEndEvent (FullCompile);
     return (AE_ERROR);
@@ -535,7 +551,7 @@ void
 AslCompilerFileHeader (
     UINT32                  FileId)
 {
-    struct tm               *NewTime;
+    char                    *NewTime;
     time_t                  Aclock;
     char                    *Prefix = "";
 
@@ -579,13 +595,17 @@ AslCompilerFileHeader (
 
     /* Compilation header with timestamp */
 
-    (void) time (&Aclock);
-    NewTime = localtime (&Aclock);
+    Aclock = time (NULL);
+    NewTime = ctime (&Aclock);
 
     FlPrintFile (FileId,
-        "%sCompilation of \"%s\" - %s%s\n",
-        Prefix, AslGbl_Files[ASL_FILE_INPUT].Filename, asctime (NewTime),
-        Prefix);
+        "%sCompilation of \"%s\" -",
+        Prefix, AslGbl_Files[ASL_FILE_INPUT].Filename);
+
+    if (NewTime)
+    {
+        FlPrintFile (FileId, " %s%s\n", NewTime, Prefix);
+    }
 
     switch (FileId)
     {
@@ -798,7 +818,7 @@ CmCleanupAndExit (
 
     if (AslGbl_ExceptionCount[ASL_ERROR] > ASL_MAX_ERROR_COUNT)
     {
-        printf ("\nMaximum error count (%d) exceeded\n",
+        printf ("\nMaximum error count (%d) exceeded (aslcompile.c)\n",
             ASL_MAX_ERROR_COUNT);
     }
 

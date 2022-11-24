@@ -5,10 +5,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -24,19 +31,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "aslcompiler.h"
 #include "acparser.h"
@@ -118,8 +126,7 @@ CvIsFilename (
  * FUNCTION:    CvInitFileTree
  *
  * PARAMETERS:  Table      - input table
- *              AmlStart   - Address of the starting point of the AML.
- *              AmlLength  - Length of the AML file.
+ *              RootFile   - Output file that defines the DefinitionBlock
  *
  * RETURN:      None
  *
@@ -131,8 +138,7 @@ CvIsFilename (
 void
 CvInitFileTree (
     ACPI_TABLE_HEADER       *Table,
-    UINT8                   *AmlStart,
-    UINT32                  AmlLength)
+    FILE                    *RootFile)
 {
     UINT8                   *TreeAml;
     UINT8                   *FileEnd;
@@ -140,6 +146,8 @@ CvInitFileTree (
     char                    *PreviousFilename = NULL;
     char                    *ParentFilename = NULL;
     char                    *ChildFilename = NULL;
+    UINT8                   *AmlStart;
+    UINT32                  AmlLength;
 
 
     if (!AcpiGbl_CaptureComments)
@@ -147,9 +155,13 @@ CvInitFileTree (
         return;
     }
 
+
+    AmlLength = Table->Length - sizeof (ACPI_TABLE_HEADER);
+    AmlStart = ((UINT8 *) Table + sizeof (ACPI_TABLE_HEADER));
+
     CvDbgPrint ("AmlLength: %x\n", AmlLength);
     CvDbgPrint ("AmlStart:  %p\n", AmlStart);
-    CvDbgPrint ("AmlEnd?:   %p\n", AmlStart+AmlLength);
+    CvDbgPrint ("AmlEnd:    %p\n", AmlStart+AmlLength);
 
     AcpiGbl_FileTreeRoot = AcpiOsAcquireObject (AcpiGbl_FileCache);
 
@@ -161,7 +173,7 @@ CvInitFileTree (
 
     /* Set the root file to the current open file */
 
-    AcpiGbl_FileTreeRoot->File = AcpiGbl_OutputFile;
+    AcpiGbl_FileTreeRoot->File = RootFile;
 
     /*
      * Set this to true because we don't need to output

@@ -4,10 +4,17 @@
  *
  ******************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -83,6 +91,7 @@ enum AcpiExDebuggerCommands
 {
     CMD_NOT_FOUND = 0,
     CMD_NULL,
+    CMD_ALL,
     CMD_ALLOCATIONS,
     CMD_ARGS,
     CMD_ARGUMENTS,
@@ -163,6 +172,7 @@ static const ACPI_DB_COMMAND_INFO   AcpiGbl_DbCommands[] =
 {
     {"<NOT FOUND>",  0},
     {"<NULL>",       0},
+    {"ALL",          1},
     {"ALLOCATIONS",  0},
     {"ARGS",         0},
     {"ARGUMENTS",    0},
@@ -265,6 +275,7 @@ static const ACPI_DB_COMMAND_HELP   AcpiGbl_DbCommandHelp[] =
     {1, "  Type <Object>",                      "Display object type\n"},
 
     {0, "\nControl Method Execution:",          "\n"},
+    {1, "  All <NameSeg>",                      "Evaluate all objects named NameSeg\n"},
     {1, "  Evaluate <Namepath> [Arguments]",    "Evaluate object or control method\n"},
     {1, "  Execute <Namepath> [Arguments]",     "Synonym for Evaluate\n"},
 #ifdef ACPI_APPLICATION
@@ -487,7 +498,7 @@ AcpiDbDisplayHelp (
     }
     else
     {
-        /* Display help for all commands that match the subtring */
+        /* Display help for all commands that match the substring */
 
         AcpiDbDisplayCommandInfo (Command, TRUE);
     }
@@ -525,19 +536,16 @@ AcpiDbGetNextToken (
         return (NULL);
     }
 
-    /* Remove any spaces at the beginning */
+    /* Remove any spaces at the beginning, ignore blank lines */
 
-    if (*String == ' ')
+    while (*String && isspace ((int) *String))
     {
-        while (*String && (*String == ' '))
-        {
-            String++;
-        }
+        String++;
+    }
 
-        if (!(*String))
-        {
-            return (NULL);
-        }
+    if (!(*String))
+    {
+        return (NULL);
     }
 
     switch (*String)
@@ -642,7 +650,7 @@ AcpiDbGetNextToken (
 
         /* Find end of token */
 
-        while (*String && (*String != ' '))
+        while (*String && !isspace ((int) *String))
         {
             String++;
         }
@@ -836,6 +844,13 @@ AcpiDbCommandDispatch (
         {
             return (AE_OK);
         }
+        break;
+
+    case CMD_ALL:
+
+        AcpiOsPrintf ("Executing all objects with NameSeg: %s\n", AcpiGbl_DbArgs[1]);
+        AcpiDbExecute (AcpiGbl_DbArgs[1],
+            &AcpiGbl_DbArgs[2], &AcpiGbl_DbArgTypes[2], EX_NO_SINGLE_STEP | EX_ALL);
         break;
 
     case CMD_ALLOCATIONS:

@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -211,6 +219,7 @@ AcpiExOpcode_1A_0T_0R (
 }
 
 
+#ifdef _OBSOLETE_CODE /* Was originally used for Load() operator */
 /*******************************************************************************
  *
  * FUNCTION:    AcpiExOpcode_1A_1T_0R
@@ -240,10 +249,12 @@ AcpiExOpcode_1A_1T_0R (
 
     switch (WalkState->Opcode)
     {
+#ifdef _OBSOLETE_CODE
     case AML_LOAD_OP:
 
         Status = AcpiExLoadOp (Operand[0], Operand[1], WalkState);
         break;
+#endif
 
     default:                        /* Unknown opcode */
 
@@ -258,7 +269,7 @@ Cleanup:
 
     return_ACPI_STATUS (Status);
 }
-
+#endif
 
 /*******************************************************************************
  *
@@ -270,6 +281,8 @@ Cleanup:
  *
  * DESCRIPTION: Execute opcode with one argument, one target, and a
  *              return value.
+ *              January 2022: Added Load operator, with new ACPI 6.4
+ *              semantics.
  *
  ******************************************************************************/
 
@@ -299,6 +312,7 @@ AcpiExOpcode_1A_1T_1R (
     case AML_FIND_SET_LEFT_BIT_OP:
     case AML_FIND_SET_RIGHT_BIT_OP:
     case AML_FROM_BCD_OP:
+    case AML_LOAD_OP:
     case AML_TO_BCD_OP:
     case AML_CONDITIONAL_REF_OF_OP:
 
@@ -397,6 +411,18 @@ AcpiExOpcode_1A_1T_1R (
                 /* Next power of 10 */
 
                 PowerOfTen *= 10;
+            }
+            break;
+
+        case AML_LOAD_OP:               /* Result1 = Load (Operand[0], Result1) */
+
+            ReturnDesc->Integer.Value = 0;
+            Status = AcpiExLoadOp (Operand[0], ReturnDesc, WalkState);
+            if (ACPI_SUCCESS (Status))
+            {
+                /* Return -1 (non-zero) indicates success */
+
+                ReturnDesc->Integer.Value = 0xFFFFFFFFFFFFFFFF;
             }
             break;
 
@@ -1081,7 +1107,7 @@ AcpiExOpcode_1A_0T_1R (
                             WalkState, ReturnDesc, &TempDesc);
                         if (ACPI_FAILURE (Status))
                         {
-                            goto Cleanup;
+                            return_ACPI_STATUS (Status);
                         }
 
                         ReturnDesc = TempDesc;
