@@ -4,10 +4,17 @@
  *
  ******************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -154,7 +162,7 @@ AcpiUtDeleteInternalObj (
             (void) AcpiEvDeleteGpeBlock (Object->Device.GpeBlock);
         }
 
-        /*lint -fallthrough */
+        ACPI_FALLTHROUGH;
 
     case ACPI_TYPE_PROCESSOR:
     case ACPI_TYPE_THERMAL:
@@ -331,6 +339,14 @@ AcpiUtDeleteInternalObj (
         }
         break;
 
+    case ACPI_TYPE_LOCAL_ADDRESS_HANDLER:
+
+        ACPI_DEBUG_PRINT ((ACPI_DB_ALLOCATIONS,
+            "***** Address handler %p\n", Object));
+
+        AcpiOsDeleteMutex (Object->AddressSpace.ContextMutex);
+        break;
+
     default:
 
         break;
@@ -474,6 +490,7 @@ AcpiUtUpdateRefCount (
             ACPI_WARNING ((AE_INFO,
                 "Obj %p, Reference Count is already zero, cannot decrement\n",
                 Object));
+            return;
         }
 
         ACPI_DEBUG_PRINT_RAW ((ACPI_DB_ALLOCATIONS,
@@ -514,13 +531,13 @@ AcpiUtUpdateRefCount (
  *
  * FUNCTION:    AcpiUtUpdateObjectReference
  *
- * PARAMETERS:  Object              - Increment ref count for this object
- *                                    and all sub-objects
+ * PARAMETERS:  Object              - Increment or decrement the ref count for
+ *                                    this object and all sub-objects
  *              Action              - Either REF_INCREMENT or REF_DECREMENT
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Increment the object reference count
+ * DESCRIPTION: Increment or decrement the object reference count
  *
  * Object references are incremented when:
  * 1) An object is attached to a Node (namespace object)
@@ -559,7 +576,7 @@ AcpiUtUpdateObjectReference (
         }
 
         /*
-         * All sub-objects must have their reference count incremented
+         * All sub-objects must have their reference count updated
          * also. Different object types have different subobjects.
          */
         switch (Object->Common.Type)
@@ -628,17 +645,13 @@ AcpiUtUpdateObjectReference (
                     break;
                 }
             }
+
             NextObject = NULL;
             break;
 
         case ACPI_TYPE_BUFFER_FIELD:
 
             NextObject = Object->BufferField.BufferObj;
-            break;
-
-        case ACPI_TYPE_LOCAL_REGION_FIELD:
-
-            NextObject = Object->Field.RegionObj;
             break;
 
         case ACPI_TYPE_LOCAL_BANK_FIELD:
@@ -676,6 +689,7 @@ AcpiUtUpdateObjectReference (
             }
             break;
 
+        case ACPI_TYPE_LOCAL_REGION_FIELD:
         case ACPI_TYPE_REGION:
         default:
 

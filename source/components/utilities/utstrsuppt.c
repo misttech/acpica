@@ -4,10 +4,17 @@
  *
  ******************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -95,10 +103,16 @@ AcpiUtConvertOctalString (
 
     while (*String)
     {
-        /* Character must be ASCII 0-7, otherwise terminate with no error */
-
+        /*
+         * Character must be ASCII 0-7, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
         if (!(ACPI_IS_OCTAL_DIGIT (*String)))
         {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_OCTAL_CONSTANT;
+#endif
             break;
         }
 
@@ -151,10 +165,16 @@ AcpiUtConvertDecimalString (
 
     while (*String)
     {
-        /* Character must be ASCII 0-9, otherwise terminate with no error */
-
-        if (!isdigit (*String))
+        /*
+         * Character must be ASCII 0-9, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
+        if (!isdigit ((int) *String))
         {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_DECIMAL_CONSTANT;
+#endif
            break;
         }
 
@@ -207,10 +227,16 @@ AcpiUtConvertHexString (
 
     while (*String)
     {
-        /* Must be ASCII A-F, a-f, or 0-9, otherwise terminate with no error */
-
-        if (!isxdigit (*String))
+        /*
+         * Character must be ASCII A-F, a-f, or 0-9, otherwise:
+         * 1) Runtime: terminate with no error, per the ACPI spec
+         * 2) Compiler: return an error
+         */
+        if (!isxdigit ((int) *String))
         {
+#ifdef ACPI_ASL_COMPILER
+            Status = AE_BAD_HEX_CONSTANT;
+#endif
             break;
         }
 

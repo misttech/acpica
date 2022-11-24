@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "aecommon.h"
 
@@ -80,7 +88,6 @@ BOOLEAN                     AcpiGbl_VerboseHandlers = FALSE;
 UINT8                       AcpiGbl_RegionFillValue = 0;
 BOOLEAN                     AcpiGbl_IgnoreErrors = FALSE;
 BOOLEAN                     AcpiGbl_AbortLoopOnTimeout = FALSE;
-BOOLEAN                     AcpiGbl_DbOpt_NoRegionSupport = FALSE;
 UINT8                       AcpiGbl_UseHwReducedFadt = FALSE;
 BOOLEAN                     AcpiGbl_DoInterfaceTests = FALSE;
 BOOLEAN                     AcpiGbl_LoadTestTables = FALSE;
@@ -522,12 +529,13 @@ main (
     ACPI_CHECK_OK (AcpiInitializeSubsystem, Status);
     if (ACPI_FAILURE (Status))
     {
+        ExitCode = -1;
         goto ErrorExit;
     }
 
     /* Use a shorter timeout value for acpiexec */
 
-    AcpiGbl_MaxLoopIterations = 1;
+    AcpiGbl_MaxLoopIterations = 10;
 
     /* Initialize the AML debugger */
 
@@ -535,6 +543,7 @@ main (
     ACPI_CHECK_OK (AcpiInitializeDebugger, Status);
     if (ACPI_FAILURE (Status))
     {
+        ExitCode = -1;
         goto ErrorExit;
     }
 
@@ -562,8 +571,6 @@ main (
     {
         signal (SIGSEGV, AeSignalHandler);
     }
-
-    AeProcessInitFile();
 
     /* The remaining arguments are filenames for ACPI tables */
 
@@ -598,6 +605,7 @@ main (
     Status = AeBuildLocalTables (ListHead);
     if (ACPI_FAILURE (Status))
     {
+        ExitCode = -1;
         goto ErrorExit;
     }
 
@@ -622,7 +630,22 @@ main (
         goto EnterDebugger;
     }
 
+    /* Read the entire namespace initialization file if requested */
+
+    Status = AeProcessInitFile();
+    if (ACPI_FAILURE (Status))
+    {
+        ExitCode = -1;
+        goto ErrorExit;
+    }
+
     Status = AeLoadTables ();
+    if (ACPI_FAILURE (Status))
+    {
+        printf ("**** Could not load ACPI tables, %s\n",
+            AcpiFormatException (Status));
+        goto EnterDebugger;
+    }
 
     /*
      * Exit namespace initialization for the "load namespace only" option.
@@ -631,13 +654,6 @@ main (
      */
     if (AcpiGbl_AeLoadOnly)
     {
-        goto EnterDebugger;
-    }
-
-    if (ACPI_FAILURE (Status))
-    {
-        printf ("**** Could not load ACPI tables, %s\n",
-            AcpiFormatException (Status));
         goto EnterDebugger;
     }
 
@@ -683,6 +699,7 @@ main (
         goto EnterDebugger;
     }
 
+    AeDisplayUnusedInitFileItems ();
     AeMiscellaneousTests ();
 
 
@@ -729,7 +746,9 @@ NormalExit:
 
 ErrorExit:
     AeLateTest ();
-    AcpiOsFree (AcpiGbl_InitEntries);
+
+    AeDeleteInitFileList ();
+
     (void) AcpiTerminate ();
     AcDeleteTableList (ListHead);
     return (ExitCode);

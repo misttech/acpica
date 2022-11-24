@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "aslcompiler.h"
 #include "aslcompiler.y.h"
@@ -114,8 +122,8 @@ NsDisplayNamespace (
 
     /* File header */
 
-    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "Contents of ACPI Namespace\n\n");
-    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "Count  Depth    Name - Type\n\n");
+    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "Contents of ACPI Namespace\n\n"
+        "Count  Depth    Name - Type\n\n");
 
     /* Walk entire namespace from the root */
 
@@ -127,14 +135,21 @@ NsDisplayNamespace (
         return (Status);
     }
 
-    /* Print the full pathname for each namespace node */
+    /* Print the full pathname for each namespace node in the common namespace */
 
-    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "\nNamespace pathnames\n\n");
+    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT,
+        "\nNamespace pathnames and where declared:\n"
+        "<NamePath, Object type, Containing file, Line number within file>\n\n");
 
     Status = AcpiNsWalkNamespace (ACPI_TYPE_ANY, ACPI_ROOT_OBJECT,
         ACPI_UINT32_MAX, FALSE, NsDoOnePathname, NULL,
         NULL, NULL);
 
+    /*
+     * We just dumped the entire common namespace, we don't want to do it
+     * again for other input files.
+     */
+    AslGbl_NsOutputFlag = FALSE;
     return (Status);
 }
 
@@ -400,7 +415,8 @@ NsDoOneNamespaceObject (
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Print the full pathname for a namespace node.
+ * DESCRIPTION: Print the full pathname and additional info for a namespace
+ * node.
  *
  ******************************************************************************/
 
@@ -416,6 +432,13 @@ NsDoOnePathname (
     ACPI_BUFFER             TargetPath;
 
 
+    /* Ignore predefined namespace nodes and External declarations */
+
+    if (!Node->Op || (Node->Flags & ANOBJ_IS_EXTERNAL))
+    {
+        return (AE_OK);
+    }
+
     TargetPath.Length = ACPI_ALLOCATE_LOCAL_BUFFER;
     Status = AcpiNsHandleToPathname (Node, &TargetPath, FALSE);
     if (ACPI_FAILURE (Status))
@@ -423,8 +446,15 @@ NsDoOnePathname (
         return (Status);
     }
 
-    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "%s\n",
-        ACPI_CAST_PTR (char, TargetPath.Pointer));
+    /*
+     * Print the full pathname (and other information)
+     * for each namespace node in the common namespace
+     */
+    FlPrintFile (ASL_FILE_NAMESPACE_OUTPUT, "%-41s %-12s  %s, %u\n",
+        ACPI_CAST_PTR (char, TargetPath.Pointer),
+        AcpiUtGetTypeName (Node->Type),
+        Node->Op->Asl.Filename, Node->Op->Asl.LogicalLineNumber);
+
     ACPI_FREE (TargetPath.Pointer);
     return (AE_OK);
 }

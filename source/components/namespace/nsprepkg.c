@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -102,7 +110,7 @@ AcpiNsCheckPackage (
     UINT32                      i;
 
 
-    ACPI_FUNCTION_NAME (NsCheckPackage);
+    ACPI_FUNCTION_TRACE (NsCheckPackage);
 
 
     /* The package info for this name is in the next table entry */
@@ -133,13 +141,13 @@ AcpiNsCheckPackage (
     {
         if (Package->RetInfo.Type == ACPI_PTYPE1_VAR)
         {
-            return (AE_OK);
+            return_ACPI_STATUS (AE_OK);
         }
 
         ACPI_WARN_PREDEFINED ((AE_INFO, Info->FullPathname, Info->NodeFlags,
             "Return Package has no elements (empty)"));
 
-        return (AE_AML_OPERAND_VALUE);
+        return_ACPI_STATUS (AE_AML_OPERAND_VALUE);
     }
 
     /*
@@ -193,7 +201,7 @@ AcpiNsCheckPackage (
                 Package->RetInfo.ObjectType1, i);
             if (ACPI_FAILURE (Status))
             {
-                return (Status);
+                return_ACPI_STATUS (Status);
             }
 
             Elements++;
@@ -226,7 +234,7 @@ AcpiNsCheckPackage (
                     Package->RetInfo3.ObjectType[i], i);
                 if (ACPI_FAILURE (Status))
                 {
-                    return (Status);
+                    return_ACPI_STATUS (Status);
                 }
             }
             else
@@ -237,7 +245,7 @@ AcpiNsCheckPackage (
                     Package->RetInfo3.TailObjectType, i);
                 if (ACPI_FAILURE (Status))
                 {
-                    return (Status);
+                    return_ACPI_STATUS (Status);
                 }
             }
 
@@ -253,7 +261,7 @@ AcpiNsCheckPackage (
             Info, Elements, ACPI_RTYPE_INTEGER, 0);
         if (ACPI_FAILURE (Status))
         {
-            return (Status);
+            return_ACPI_STATUS (Status);
         }
 
         Elements++;
@@ -272,7 +280,7 @@ AcpiNsCheckPackage (
             Info, Elements, ACPI_RTYPE_INTEGER, 0);
         if (ACPI_FAILURE (Status))
         {
-            return (Status);
+            return_ACPI_STATUS (Status);
         }
 
         /*
@@ -316,7 +324,7 @@ AcpiNsCheckPackage (
                 Info, ReturnObject, ReturnObjectPtr);
             if (ACPI_FAILURE (Status))
             {
-                return (Status);
+                return_ACPI_STATUS (Status);
             }
 
             /* Update locals to point to the new package (of 1 element) */
@@ -354,7 +362,7 @@ AcpiNsCheckPackage (
                 Package->RetInfo.ObjectType1, 0);
             if (ACPI_FAILURE(Status))
             {
-                return (Status);
+                return_ACPI_STATUS (Status);
             }
 
             /* Validate length of the UUID buffer */
@@ -363,14 +371,14 @@ AcpiNsCheckPackage (
             {
                 ACPI_WARN_PREDEFINED ((AE_INFO, Info->FullPathname,
                     Info->NodeFlags, "Invalid length for UUID Buffer"));
-                return (AE_AML_OPERAND_VALUE);
+                return_ACPI_STATUS (AE_AML_OPERAND_VALUE);
             }
 
             Status = AcpiNsCheckObjectType(Info, Elements + 1,
                 Package->RetInfo.ObjectType2, 0);
             if (ACPI_FAILURE(Status))
             {
-                return (Status);
+                return_ACPI_STATUS (Status);
             }
 
             Elements += 2;
@@ -386,10 +394,10 @@ AcpiNsCheckPackage (
             "Invalid internal return type in table entry: %X",
             Package->RetInfo.Type));
 
-        return (AE_AML_INTERNAL);
+        return_ACPI_STATUS (AE_AML_INTERNAL);
     }
 
-    return (Status);
+    return_ACPI_STATUS (Status);
 
 
 PackageTooSmall:
@@ -400,7 +408,7 @@ PackageTooSmall:
         "Return Package is too small - found %u elements, expected %u",
         Count, ExpectedCount));
 
-    return (AE_AML_OPERAND_VALUE);
+    return_ACPI_STATUS (AE_AML_OPERAND_VALUE);
 }
 
 
@@ -753,6 +761,8 @@ AcpiNsCheckPackageElements (
     UINT32                      i;
 
 
+    ACPI_FUNCTION_TRACE (NsCheckPackageElements);
+
     /*
      * Up to two groups of package elements are supported by the data
      * structure. All elements in each group must be of the same type.
@@ -764,7 +774,7 @@ AcpiNsCheckPackageElements (
             Type1, i + StartIndex);
         if (ACPI_FAILURE (Status))
         {
-            return (Status);
+            return_ACPI_STATUS (Status);
         }
 
         ThisElement++;
@@ -776,11 +786,11 @@ AcpiNsCheckPackageElements (
             Type2, (i + Count1 + StartIndex));
         if (ACPI_FAILURE (Status))
         {
-            return (Status);
+            return_ACPI_STATUS (Status);
         }
 
         ThisElement++;
     }
 
-    return (AE_OK);
+    return_ACPI_STATUS (AE_OK);
 }

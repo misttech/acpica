@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 /* acpisrc:StructDefs -- for acpisrc conversion */
 
@@ -71,6 +79,7 @@
 #define ACPI_RESTAG_IORESTRICTION               "_IOR"
 #define ACPI_RESTAG_LENGTH                      "_LEN"
 #define ACPI_RESTAG_LINE                        "_LIN"
+#define ACPI_RESTAG_LOCALPORT                   "_PRT"
 #define ACPI_RESTAG_MEMATTRIBUTES               "_MTP"  /* Memory(0), Reserved(1), ACPI(2), NVS(3) */
 #define ACPI_RESTAG_MEMTYPE                     "_MEM"  /* NonCache(0), Cacheable(1) Cache+combine(2), Cache+prefetch(3) */
 #define ACPI_RESTAG_MAXADDR                     "_MAX"
@@ -80,6 +89,7 @@
 #define ACPI_RESTAG_MODE                        "_MOD"
 #define ACPI_RESTAG_PARITY                      "_PAR"
 #define ACPI_RESTAG_PHASE                       "_PHA"
+#define ACPI_RESTAG_PHYTYPE                     "_PHY"
 #define ACPI_RESTAG_PIN                         "_PIN"
 #define ACPI_RESTAG_PINCONFIG                   "_PPI"
 #define ACPI_RESTAG_PINCONFIG_TYPE              "_TYP"
@@ -456,7 +466,8 @@ typedef struct aml_resource_gpio
 #define AML_RESOURCE_I2C_SERIALBUSTYPE          1
 #define AML_RESOURCE_SPI_SERIALBUSTYPE          2
 #define AML_RESOURCE_UART_SERIALBUSTYPE         3
-#define AML_RESOURCE_MAX_SERIALBUSTYPE          3
+#define AML_RESOURCE_CSI2_SERIALBUSTYPE         4
+#define AML_RESOURCE_MAX_SERIALBUSTYPE          4
 #define AML_RESOURCE_VENDOR_SERIALBUSTYPE       192 /* Vendor defined is 0xC0-0xFF (NOT SUPPORTED) */
 
 typedef struct aml_resource_common_serialbus
@@ -465,6 +476,24 @@ typedef struct aml_resource_common_serialbus
     AML_RESOURCE_SERIAL_COMMON
 
 } AML_RESOURCE_COMMON_SERIALBUS;
+
+
+typedef struct aml_resource_csi2_serialbus
+{
+    AML_RESOURCE_LARGE_HEADER_COMMON
+    AML_RESOURCE_SERIAL_COMMON
+
+    /*
+     * Optional fields follow immediately:
+     * 1) Vendor Data bytes
+     * 2) Resource Source String
+     */
+
+} AML_RESOURCE_CSI2_SERIALBUS;
+
+#define AML_RESOURCE_CSI2_REVISION              1       /* ACPI 6.4 */
+#define AML_RESOURCE_CSI2_TYPE_REVISION         1       /* ACPI 6.4 */
+#define AML_RESOURCE_CSI2_MIN_DATA_LEN          0       /* ACPI 6.4 */
 
 typedef struct aml_resource_i2c_serialbus
 {
@@ -504,7 +533,6 @@ typedef struct aml_resource_spi_serialbus
 #define AML_RESOURCE_SPI_REVISION               1       /* ACPI 5.0 */
 #define AML_RESOURCE_SPI_TYPE_REVISION          1       /* ACPI 5.0 */
 #define AML_RESOURCE_SPI_MIN_DATA_LEN           9
-
 
 typedef struct aml_resource_uart_serialbus
 {
@@ -680,6 +708,7 @@ typedef union aml_resource
     AML_RESOURCE_I2C_SERIALBUS              I2cSerialBus;
     AML_RESOURCE_SPI_SERIALBUS              SpiSerialBus;
     AML_RESOURCE_UART_SERIALBUS             UartSerialBus;
+    AML_RESOURCE_CSI2_SERIALBUS             Csi2SerialBus;
     AML_RESOURCE_COMMON_SERIALBUS           CommonSerialBus;
     AML_RESOURCE_PIN_FUNCTION               PinFunction;
     AML_RESOURCE_PIN_CONFIG                 PinConfig;

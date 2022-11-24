@@ -4,10 +4,17 @@
  *
  *****************************************************************************/
 
-/*
- * Copyright (C) 2000 - 2020, Intel Corp.
+/******************************************************************************
+ *
+ * 1. Copyright Notice
+ *
+ * Some or all of this work - Copyright (c) 1999 - 2022, Intel Corp.
  * All rights reserved.
  *
+*
+ *****************************************************************************
+ *
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -23,19 +30,20 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
- * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGES.
- */
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+*
+ *****************************************************************************/
 
 #include "acpi.h"
 #include "accommon.h"
@@ -76,6 +84,7 @@ AcpiExSystemMemorySpaceHandler (
     ACPI_STATUS             Status = AE_OK;
     void                    *LogicalAddrPtr = NULL;
     ACPI_MEM_SPACE_CONTEXT  *MemInfo = RegionContext;
+    ACPI_MEM_MAPPING        *Mm = MemInfo->CurMm;
     UINT32                  Length;
     ACPI_SIZE               MapLength;
     ACPI_SIZE               PageBoundaryMapLength;
@@ -135,21 +144,46 @@ AcpiExSystemMemorySpaceHandler (
      * Is 1) Address below the current mapping? OR
      *    2) Address beyond the current mapping?
      */
-    if ((Address < MemInfo->MappedPhysicalAddress) ||
-        (((UINT64) Address + Length) >
-            ((UINT64)
-            MemInfo->MappedPhysicalAddress + MemInfo->MappedLength)))
+    if (!Mm || (Address < Mm->PhysicalAddress) ||
+        ((UINT64) Address + Length > (UINT64) Mm->PhysicalAddress + Mm->Length))
     {
         /*
-         * The request cannot be resolved by the current memory mapping;
-         * Delete the existing mapping and create a new one.
+         * The request cannot be resolved by the current memory mapping.
+         *
+         * Look for an existing saved mapping covering the address range
+         * at hand. If found, save it as the current one and carry out
+         * the access.
          */
-        if (MemInfo->MappedLength)
+        for (Mm = MemInfo->FirstMm; Mm; Mm = Mm->NextMm)
         {
-            /* Valid mapping, delete it */
+            if (Mm == MemInfo->CurMm)
+            {
+                continue;
+            }
 
-            AcpiOsUnmapMemory (MemInfo->MappedLogicalAddress,
-                MemInfo->MappedLength);
+            if (Address < Mm->PhysicalAddress)
+            {
+                continue;
+            }
+
+            if ((UINT64) Address + Length > (UINT64) Mm->PhysicalAddress + Mm->Length)
+            {
+                continue;
+            }
+
+            MemInfo->CurMm = Mm;
+            goto access;
+        }
+
+        /* Create a new mappings list entry */
+
+        Mm = ACPI_ALLOCATE_ZEROED(sizeof(*Mm));
+        if (!Mm)
+        {
+            ACPI_ERROR((AE_INFO,
+                "Unable to save memory mapping at 0x%8.8X%8.8X, size %u",
+                ACPI_FORMAT_UINT64(Address), Length));
+            return_ACPI_STATUS(AE_NO_MEMORY);
         }
 
         /*
@@ -185,28 +219,38 @@ AcpiExSystemMemorySpaceHandler (
 
         /* Create a new mapping starting at the address given */
 
-        MemInfo->MappedLogicalAddress = AcpiOsMapMemory (Address, MapLength);
-        if (!MemInfo->MappedLogicalAddress)
+        LogicalAddrPtr = AcpiOsMapMemory(Address, MapLength);
+        if (!LogicalAddrPtr)
         {
             ACPI_ERROR ((AE_INFO,
                 "Could not map memory at 0x%8.8X%8.8X, size %u",
                 ACPI_FORMAT_UINT64 (Address), (UINT32) MapLength));
-            MemInfo->MappedLength = 0;
+            ACPI_FREE(Mm);
             return_ACPI_STATUS (AE_NO_MEMORY);
         }
 
         /* Save the physical address and mapping size */
 
-        MemInfo->MappedPhysicalAddress = Address;
-        MemInfo->MappedLength = MapLength;
+        Mm->LogicalAddress = LogicalAddrPtr;
+        Mm->PhysicalAddress = Address;
+        Mm->Length = MapLength;
+
+        /*
+         * Add the new entry to the mappigs list and save it as the
+         * current mapping.
+         */
+        Mm->NextMm = MemInfo->FirstMm;
+        MemInfo->FirstMm = Mm;
+        MemInfo->CurMm = Mm;
     }
 
+access:
     /*
      * Generate a logical pointer corresponding to the address we want to
      * access
      */
-    LogicalAddrPtr = MemInfo->MappedLogicalAddress +
-        ((UINT64) Address - (UINT64) MemInfo->MappedPhysicalAddress);
+    LogicalAddrPtr = Mm->LogicalAddress +
+        ((UINT64) Address - (UINT64) Mm->PhysicalAddress);
 
     ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
         "System-Memory (width %u) R/W %u Address=%8.8X%8.8X\n",
@@ -544,8 +588,16 @@ AcpiExDataTableSpaceHandler (
     void                    *HandlerContext,
     void                    *RegionContext)
 {
+    ACPI_DATA_TABLE_MAPPING *Mapping;
+    char                    *Pointer;
+
+
     ACPI_FUNCTION_TRACE (ExDataTableSpaceHandler);
 
+
+    Mapping = (ACPI_DATA_TABLE_MAPPING *) RegionContext;
+    Pointer = ACPI_CAST_PTR (char, Mapping->Pointer) +
+        (Address - ACPI_PTR_TO_PHYSADDR (Mapping->Pointer));
 
     /*
      * Perform the memory read or write. The BitWidth was already
@@ -555,14 +607,12 @@ AcpiExDataTableSpaceHandler (
     {
     case ACPI_READ:
 
-        memcpy (ACPI_CAST_PTR (char, Value), ACPI_PHYSADDR_TO_PTR (Address),
-            ACPI_DIV_8 (BitWidth));
+        memcpy (ACPI_CAST_PTR (char, Value), Pointer, ACPI_DIV_8 (BitWidth));
         break;
 
     case ACPI_WRITE:
 
-        memcpy (ACPI_PHYSADDR_TO_PTR (Address), ACPI_CAST_PTR (char, Value),
-            ACPI_DIV_8 (BitWidth));
+        memcpy (Pointer, ACPI_CAST_PTR (char, Value), ACPI_DIV_8 (BitWidth));
         break;
 
     default:
