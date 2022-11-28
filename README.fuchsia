@@ -1,5 +1,6 @@
 Source: https://acpica.org/sites/acpica/files/acpica-unix2-20200110.tar.gz
 License: BSD
+License File: LICENSE
 Version: 20200110
 
 Modifications:
