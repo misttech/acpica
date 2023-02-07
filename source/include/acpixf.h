@@ -666,7 +666,7 @@ ACPI_EXTERNAL_RETURN_STATUS (
 ACPI_STATUS
 AcpiGetHandle (
     ACPI_HANDLE             Parent,
-    ACPI_STRING             Pathname,
+    const char              *Pathname,
     ACPI_HANDLE             *RetHandle))
 
 ACPI_EXTERNAL_RETURN_STATUS (
