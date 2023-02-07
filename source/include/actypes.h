@@ -1377,7 +1377,7 @@ typedef struct acpi_mem_space_context
 
 } ACPI_MEM_SPACE_CONTEXT;
 
-typedef struct acpi_data_table_space_context
+typedef struct acpi_data_table_mapping
 {
     void                            *Pointer;
 
