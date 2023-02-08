@@ -255,6 +255,8 @@ NoEcho('
 %type <n> WireModeKeyword
 %type <n> XferSizeKeyword
 %type <n> XferTypeKeyword
+%type <n> ClockScaleKeyword
+%type <n> ClockModeKeyword
 
 /* Types */
 
@@ -307,6 +309,7 @@ NoEcho('
 
 /* Resource Descriptors */
 
+%type <n> ClockInputTerm
 %type <n> ConnectionTerm
 %type <n> Csi2SerialBusTerm
 %type <n> DMATerm
