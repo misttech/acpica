@@ -363,17 +363,4 @@ const char                      *AcpiGbl_PtypDecode[] =
     "Input Schmitt Trigger",
 };
 
-const char                      *AcpiGbl_ClockInputMode[] =
-{
-    "Fixed",
-    "Variable",
-};
-
-const char                      *AcpiGbl_ClockInputScale[] =
-{
-    "Hz",
-    "KHz",
-    "MHz",
-};
-
 #endif

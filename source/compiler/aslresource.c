@@ -658,12 +658,6 @@ RsDoOneResourceDescriptor (
 
     switch (Info->DescriptorTypeOp->Asl.ParseOpcode)
     {
-
-    case PARSEOP_CLOCKINPUT:
-
-        Rnode = RsDoClockInputDescriptor(Info);
-        break;
-
     case PARSEOP_DMA:
 
         Rnode = RsDoDmaDescriptor (Info);

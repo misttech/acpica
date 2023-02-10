@@ -1235,12 +1235,6 @@ AcpiDmVendorCommon (
     UINT32                  Length,
     UINT32                  Level);
 
-void
-AcpiDmClockInputDescriptor (
-    ACPI_OP_WALK_INFO       *Info,
-    AML_RESOURCE            *Resource,
-    UINT32                  Length,
-    UINT32                  Level);
 
 /*
  * dmresrcs
