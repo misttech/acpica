@@ -6,7 +6,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,10 +24,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -137,7 +141,7 @@ AcpiHwLegacySleep (
         arg.acpi_transition_s_state.target_s_state = SleepState;
         arg.acpi_transition_s_state.sleep_type_a = AcpiGbl_SleepTypeA;
         arg.acpi_transition_s_state.sleep_type_b = AcpiGbl_SleepTypeB;
-        zx_status_t zx_status = zx_system_powerctl(get_root_resource(), 
+        zx_status_t zx_status = zx_system_powerctl(get_root_resource(),
             ZX_SYSTEM_POWERCTL_ACPI_TRANSITION_S_STATE, &arg);
         if (zx_status == ZX_OK) {
             Status = AE_OK;
@@ -190,7 +194,10 @@ AcpiHwLegacySleep (
 
     /* Flush caches, as per ACPI specification */
 
-    ACPI_FLUSH_CPU_CACHE ();
+    if (SleepState < ACPI_STATE_S4)
+    {
+        ACPI_FLUSH_CPU_CACHE ();
+    }
 
     Status = AcpiOsEnterSleep (SleepState, Pm1aControl, Pm1bControl);
     if (Status == AE_CTRL_TERMINATE)
@@ -267,7 +274,7 @@ ACPI_STATUS
 AcpiHwLegacyWakePrep (
     UINT8                   SleepState)
 {
-    ACPI_STATUS             Status;
+    ACPI_STATUS             Status = AE_OK;
     ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
     ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
     UINT32                  Pm1aControl;
@@ -281,9 +288,7 @@ AcpiHwLegacyWakePrep (
      * This is unclear from the ACPI Spec, but it is required
      * by some machines.
      */
-    Status = AcpiGetSleepTypeData (ACPI_STATE_S0,
-        &AcpiGbl_SleepTypeA, &AcpiGbl_SleepTypeB);
-    if (ACPI_SUCCESS (Status))
+    if (AcpiGbl_SleepTypeAS0 != ACPI_SLEEP_TYPE_INVALID)
     {
         SleepTypeRegInfo =
             AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE);
@@ -304,9 +309,9 @@ AcpiHwLegacyWakePrep (
 
             /* Insert the SLP_TYP bits */
 
-            Pm1aControl |= (AcpiGbl_SleepTypeA <<
+            Pm1aControl |= (AcpiGbl_SleepTypeAS0 <<
                 SleepTypeRegInfo->BitPosition);
-            Pm1bControl |= (AcpiGbl_SleepTypeB <<
+            Pm1bControl |= (AcpiGbl_SleepTypeBS0 <<
                 SleepTypeRegInfo->BitPosition);
 
             /* Write the control registers and ignore any errors */
@@ -391,6 +396,26 @@ AcpiHwLegacyWake (
     (void) AcpiWriteBitRegister(
             AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].StatusRegisterId,
             ACPI_CLEAR_STATUS);
+
+    /* Enable sleep button */
+
+    (void) AcpiWriteBitRegister (
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_SLEEP_BUTTON].EnableRegisterId,
+            ACPI_ENABLE_EVENT);
+
+    (void) AcpiWriteBitRegister (
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_SLEEP_BUTTON].StatusRegisterId,
+            ACPI_CLEAR_STATUS);
+
+    /* Enable pcie wake event if support */
+    if ((AcpiGbl_FADT.Flags & ACPI_FADT_PCI_EXPRESS_WAKE)) {
+        (void) AcpiWriteBitRegister (
+		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].EnableRegisterId,
+		ACPI_DISABLE_EVENT);
+        (void) AcpiWriteBitRegister (
+		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].StatusRegisterId,
+		ACPI_CLEAR_STATUS);
+    }
 
     AcpiHwExecuteSleepMethod (METHOD_PATHNAME__SST, ACPI_SST_WORKING);
     return_ACPI_STATUS (Status);

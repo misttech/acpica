@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -276,6 +280,8 @@ TrCreateValuedLeafOp (
     UINT64                  Value)
 {
     ACPI_PARSE_OBJECT       *Op;
+    UINT32                  i;
+    char                    *StringPtr = NULL;
 
 
     Op = TrAllocateOp (ParseOpcode);
@@ -296,11 +302,35 @@ TrCreateValuedLeafOp (
 
     case PARSEOP_NAMESEG:
 
+        /* Check for mixed case (or all lower case). Issue a remark in this case */
+
+        for (i = 0; i < ACPI_NAMESEG_SIZE; i++)
+        {
+            if (islower ((int) Op->Asl.Value.Name[i]))
+            {
+                AcpiUtStrupr (&Op->Asl.Value.Name[i]);
+                AslError (ASL_REMARK, ASL_MSG_LOWER_CASE_NAMESEG, Op, Op->Asl.Value.Name);
+                break;
+            }
+        }
         DbgPrint (ASL_PARSE_OUTPUT, "NAMESEG->%s", Op->Asl.Value.String);
         break;
 
     case PARSEOP_NAMESTRING:
 
+        /* Check for mixed case (or all lower case). Issue a remark in this case */
+
+        StringPtr = Op->Asl.Value.Name;
+        for (i = 0; *StringPtr; i++)
+        {
+            if (islower ((int) *StringPtr))
+            {
+                AcpiUtStrupr (&Op->Asl.Value.Name[i]);
+                AslError (ASL_REMARK, ASL_MSG_LOWER_CASE_NAMEPATH, Op, Op->Asl.Value.Name);
+                break;
+            }
+            StringPtr++;
+        }
         DbgPrint (ASL_PARSE_OUTPUT, "NAMESTRING->%s", Op->Asl.Value.String);
         break;
 
@@ -631,13 +661,18 @@ TrCreateConstantLeafOp (
 
         /* Get a copy of the current time */
 
+        Op->Asl.Value.String = "";
         CurrentTime = time (NULL);
-        StaticTimeString = ctime (&CurrentTime);
-        TimeString = UtLocalCalloc (strlen (StaticTimeString) + 1);
-        strcpy (TimeString, StaticTimeString);
 
-        TimeString[strlen(TimeString) -1] = 0;  /* Remove trailing newline */
-        Op->Asl.Value.String = TimeString;
+        StaticTimeString = ctime (&CurrentTime);
+        if (StaticTimeString)
+        {
+            TimeString = UtLocalCalloc (strlen (StaticTimeString) + 1);
+            strcpy (TimeString, StaticTimeString);
+
+            TimeString[strlen(TimeString) -1] = 0;  /* Remove trailing newline */
+            Op->Asl.Value.String = TimeString;
+        }
         break;
 
     default: /* This would be an internal error */

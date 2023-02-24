@@ -8,7 +8,7 @@ NoEcho('
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,14 @@ NoEcho('
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -388,7 +392,7 @@ DivideTerm
 EISAIDTerm
     : PARSEOP_EISAID
         PARSEOP_OPEN_PAREN
-        StringData
+        StringLiteral
         PARSEOP_CLOSE_PAREN         {$$ = TrSetOpIntegerValue (PARSEOP_EISAID, $3);}
     | PARSEOP_EISAID
         PARSEOP_OPEN_PAREN
@@ -523,7 +527,7 @@ FprintfTerm
     : PARSEOP_FPRINTF
         PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_FPRINTF);}
         TermArg ','
-        StringData
+        StringLiteral
         PrintfArgList
         PARSEOP_CLOSE_PAREN         {$$ = TrLinkOpChildren ($<n>3,3,$4,$6,$7);}
     | PARSEOP_FPRINTF
@@ -551,7 +555,7 @@ FunctionTerm
         PARSEOP_CLOSE_PAREN '{'     {COMMENT_CAPTURE_ON; }
             TermList '}'            {$$ = TrLinkOpChildren ($<n>3,7,
                                         TrSetOpFlags ($4, OP_IS_NAME_DECLARATION),
-                                        TrCreateValuedLeafOp (PARSEOP_BYTECONST, 0),
+                                        TrCreateLeafOp (PARSEOP_DEFAULT_ARG),
                                         TrCreateLeafOp (PARSEOP_SERIALIZERULE_NOTSERIAL),
                                         TrCreateValuedLeafOp (PARSEOP_BYTECONST, 0),$5,$6,$10);}
     | PARSEOP_FUNCTION
@@ -731,7 +735,7 @@ LoadTerm
     : PARSEOP_LOAD
         PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_LOAD);}
         NameString
-        RequiredTarget
+        Target
         PARSEOP_CLOSE_PAREN         {$$ = TrLinkOpChildren ($<n>3,2,$4,$5);}
     | PARSEOP_LOAD
         PARSEOP_OPEN_PAREN
@@ -979,7 +983,7 @@ PowerResTerm
 PrintfTerm
     : PARSEOP_PRINTF
         PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_PRINTF);}
-        StringData
+        StringLiteral
         PrintfArgList
         PARSEOP_CLOSE_PAREN         {$$ = TrLinkOpChildren ($<n>3,2,$4,$5);}
     | PARSEOP_PRINTF
@@ -1300,7 +1304,7 @@ ToStringTerm
 ToUUIDTerm
     : PARSEOP_TOUUID
         PARSEOP_OPEN_PAREN
-        StringData
+        StringLiteral
         PARSEOP_CLOSE_PAREN         {$$ = TrSetOpIntegerValue (PARSEOP_TOUUID, $3);}
     | PARSEOP_TOUUID
         PARSEOP_OPEN_PAREN
@@ -1310,7 +1314,7 @@ ToUUIDTerm
 UnicodeTerm
     : PARSEOP_UNICODE
         PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_UNICODE);}
-        StringData
+        StringLiteral
         PARSEOP_CLOSE_PAREN         {$$ = TrLinkOpChildren ($<n>3,2,0,$4);}
     | PARSEOP_UNICODE
         PARSEOP_OPEN_PAREN

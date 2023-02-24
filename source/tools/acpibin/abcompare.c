@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -507,7 +511,7 @@ AbGetFile (
 {
     FILE                    *File;
     UINT32                  Size;
-    char                    *Buffer = NULL;
+    char                    *DataBuffer = NULL;
     size_t                  Actual;
 
 
@@ -531,8 +535,8 @@ AbGetFile (
 
     /* Allocate a buffer for the entire file */
 
-    Buffer = calloc (Size, 1);
-    if (!Buffer)
+    DataBuffer = calloc (Size, 1);
+    if (!DataBuffer)
     {
         printf ("Could not allocate buffer of size %u\n", Size);
         goto ErrorExit;
@@ -540,12 +544,12 @@ AbGetFile (
 
     /* Read the entire file */
 
-    Actual = fread (Buffer, 1, Size, File);
+    Actual = fread (DataBuffer, 1, Size, File);
     if (Actual != Size)
     {
         printf ("Could not read the input file %s\n", Filename);
-        free (Buffer);
-        Buffer = NULL;
+        free (DataBuffer);
+        DataBuffer = NULL;
         goto ErrorExit;
     }
 
@@ -553,7 +557,7 @@ AbGetFile (
 
 ErrorExit:
     fclose (File);
-    return (Buffer);
+    return (DataBuffer);
 }
 
 
