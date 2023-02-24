@@ -679,7 +679,12 @@ AcpiDsInitAmlWalk (
     WalkState->ParserState.Aml =
     WalkState->ParserState.AmlStart = AmlStart;
     WalkState->ParserState.AmlEnd =
-    WalkState->ParserState.PkgEnd = AmlStart + AmlLength;
+    WalkState->ParserState.PkgEnd = AmlStart;
+    /* Avoid undefined behavior: applying zero offset to null pointer */
+    if (AmlStart != NULL) {
+      WalkState->ParserState.AmlEnd += AmlLength;
+      WalkState->ParserState.PkgEnd += AmlLength;
+    }
 
     /* The NextOp of the NextWalk will be the beginning of the method */
 
