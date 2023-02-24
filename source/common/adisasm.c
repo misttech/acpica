@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -44,6 +48,7 @@
 #include "acnamesp.h"
 #include "acparser.h"
 #include "acapps.h"
+#include "acconvert.h"
 
 
 #define _COMPONENT          ACPI_TOOLS
@@ -267,8 +272,6 @@ AdAmlDisassemble (
             Status = AE_ERROR;
             goto Cleanup;
         }
-
-        AcpiOsRedirectOutput (File);
     }
 
     *OutFilename = DisasmFilename;
@@ -355,18 +358,23 @@ AdDisassembleOneTable (
 
     if (!AcpiGbl_ForceAmlDisassembly && !AcpiUtIsAmlTable (Table))
     {
+        if (File)
+        {
+            AcpiOsRedirectOutput (File);
+        }
+
         AdDisassemblerHeader (Filename, ACPI_IS_DATA_TABLE);
 
         /* This is a "Data Table" (non-AML table) */
 
         AcpiOsPrintf (" * ACPI Data Table [%4.4s]\n *\n",
-            Table->Signature);
+            AcpiGbl_CDAT ? (char *) AcpiGbl_CDAT : Table->Signature);
         AcpiOsPrintf (" * Format: [HexOffset DecimalOffset ByteLength]  "
-            "FieldName : FieldValue\n */\n\n");
+            "FieldName : FieldValue (in hex)\n */\n\n");
 
         AcpiDmDumpDataTable (Table);
         fprintf (stderr, "Acpi Data Table [%4.4s] decoded\n",
-            Table->Signature);
+            AcpiGbl_CDAT ? (char *) AcpiGbl_CDAT : Table->Signature);
 
         if (File)
         {
@@ -376,6 +384,10 @@ AdDisassembleOneTable (
 
         return (AE_OK);
     }
+
+    /* Initialize the converter output file */
+
+    ASL_CV_INIT_FILETREE(Table, File);
 
     /*
      * This is an AML table (DSDT or SSDT).
@@ -387,6 +399,13 @@ AdDisassembleOneTable (
         AcpiOsPrintf ("Could not parse ACPI tables, %s\n",
             AcpiFormatException (Status));
         return (Status);
+    }
+
+    /* Redirect output for code generation and debugging output */
+
+    if (File)
+    {
+        AcpiOsRedirectOutput (File);
     }
 
     /* Debug output, namespace and parse tree */

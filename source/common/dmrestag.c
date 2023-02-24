@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -272,6 +276,14 @@ static const ACPI_RESOURCE_TAG      AcpiDmGpioIoTags[] =
 
 /* Subtype tables for SerialBus descriptors */
 
+static const ACPI_RESOURCE_TAG      AcpiDmCsi2SerialBusTags[] =    /* ACPI 6.4 */
+{
+    {( 6 * 8) + 0,  ACPI_RESTAG_SLAVEMODE},
+    {( 7 * 8) + 0,  ACPI_RESTAG_PHYTYPE},
+    {( 7 * 8) + 2,  ACPI_RESTAG_LOCALPORT},
+    {0,             NULL}
+};
+
 static const ACPI_RESOURCE_TAG      AcpiDmI2cSerialBusTags[] =
 {
     {( 6 * 8) + 0,  ACPI_RESTAG_SLAVEMODE},
@@ -311,6 +323,7 @@ static const ACPI_RESOURCE_TAG      AcpiDmUartSerialBusTags[] =
     {(21 * 8),      ACPI_RESTAG_LINE},
     {0,             NULL}
 };
+
 
 /* Subtype tables for PinFunction descriptor */
 
@@ -427,7 +440,8 @@ static const ACPI_RESOURCE_TAG      *AcpiGbl_SerialResourceTags[] =
     NULL,                           /* 0x00 Reserved */
     AcpiDmI2cSerialBusTags,         /* 0x01 I2C SerialBus */
     AcpiDmSpiSerialBusTags,         /* 0x02 SPI SerialBus */
-    AcpiDmUartSerialBusTags         /* 0x03 UART SerialBus */
+    AcpiDmUartSerialBusTags,        /* 0x03 UART SerialBus */
+    AcpiDmCsi2SerialBusTags         /* 0x04 CSI2 SerialBus */
 };
 
 /*
@@ -875,7 +889,7 @@ AcpiDmGetResourceTag (
 
     case ACPI_RESOURCE_NAME_SERIAL_BUS:
 
-        /* SerialBus has 3 subtypes: I2C, SPI, and UART */
+        /* SerialBus has 4 subtypes: I2C, SPI, UART, and CSI2 */
 
         if ((Resource->CommonSerialBus.Type == 0) ||
             (Resource->CommonSerialBus.Type > AML_RESOURCE_MAX_SERIALBUSTYPE))
