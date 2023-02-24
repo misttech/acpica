@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -224,11 +228,8 @@ AcpiTbGetRootTableEntry (
          * 32-bit platform, RSDT: Return 32-bit table entry
          * 64-bit platform, RSDT: Expand 32-bit to 64-bit and return
          */
-        // Copy the value using memcpy() to safely handle a load on a misaligned
-        // pointer.
-        UINT32 result;
-        ACPI_MOVE_32_TO_32(&result, TableEntry);
-        return result;
+        return ((ACPI_PHYSICAL_ADDRESS) (*ACPI_CAST_PTR (
+            UINT32, TableEntry)));
     }
     else
     {
@@ -362,7 +363,7 @@ AcpiTbParseRootTable (
 
     /* Validate the root table checksum */
 
-    Status = AcpiTbVerifyChecksum (Table, Length);
+    Status = AcpiUtVerifyChecksum (Table, Length);
     if (ACPI_FAILURE (Status))
     {
         AcpiOsUnmapMemory (Table, Length);
@@ -391,7 +392,8 @@ AcpiTbParseRootTable (
         }
 
         Status = AcpiTbInstallStandardTable (Address,
-            ACPI_TABLE_ORIGIN_INTERNAL_PHYSICAL, FALSE, TRUE, &TableIndex);
+            ACPI_TABLE_ORIGIN_INTERNAL_PHYSICAL, NULL, FALSE, TRUE,
+            &TableIndex);
 
         if (ACPI_SUCCESS (Status) &&
             ACPI_COMPARE_NAMESEG (
