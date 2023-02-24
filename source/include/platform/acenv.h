@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2022, Intel Corp.
+ * Copyright (C) 2000 - 2023, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -242,9 +242,6 @@
 #elif defined(__QNX__)
 #include "acqnx.h"
 
-#elif defined(__Fuchsia__)
-#include "acfuchsia.h"
-
 /*
  * EFI applications can be built with -nostdlib, in this case, it must be
  * included after including all other host environmental definitions, in
@@ -253,6 +250,8 @@
 #elif defined(_AED_EFI) || defined(_GNU_EFI) || defined(_EDK2_EFI)
 #include "acefi.h"
 
+#elif defined(__ZEPHYR__)
+#include "aczephyr.h"
 #else
 
 /* Unknown environment */
