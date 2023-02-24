@@ -6,7 +6,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2022, Intel Corp.
+ * Copyright (C) 2000 - 2023, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -408,13 +408,14 @@ AcpiHwLegacyWake (
             ACPI_CLEAR_STATUS);
 
     /* Enable pcie wake event if support */
-    if ((AcpiGbl_FADT.Flags & ACPI_FADT_PCI_EXPRESS_WAKE)) {
+    if ((AcpiGbl_FADT.Flags & ACPI_FADT_PCI_EXPRESS_WAKE))
+    {
         (void) AcpiWriteBitRegister (
-		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].EnableRegisterId,
-		ACPI_DISABLE_EVENT);
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].EnableRegisterId,
+            ACPI_DISABLE_EVENT);
         (void) AcpiWriteBitRegister (
-		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].StatusRegisterId,
-		ACPI_CLEAR_STATUS);
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].StatusRegisterId,
+            ACPI_CLEAR_STATUS);
     }
 
     AcpiHwExecuteSleepMethod (METHOD_PATHNAME__SST, ACPI_SST_WORKING);
