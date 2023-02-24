@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -206,6 +210,17 @@ ApCheckPackage (
          */
         for (i = 0; i < Count; i++)
         {
+            if (!Op)
+            {
+                /*
+                 * If we get to this point, it means that the package length
+                 * is larger than the initializer list. Stop processing the
+                 * package and return because we have run out of package
+                 * elements to analyze.
+                 */
+                return;
+            }
+
             ApCheckObjectType (Predefined->Info.Name, Op,
                 Package->RetInfo.ObjectType1, i);
             Op = Op->Asl.Next;
@@ -805,7 +820,7 @@ ApPackageTooSmall (
     UINT32                      ExpectedCount)
 {
 
-    sprintf (AslGbl_MsgBuffer, "%s: length %u, required minimum is %u",
+    sprintf (AslGbl_MsgBuffer, "%4.4s: length %u, required minimum is %u",
         PredefinedName, Count, ExpectedCount);
 
     AslError (ASL_ERROR, ASL_MSG_RESERVED_PACKAGE_LENGTH, Op, AslGbl_MsgBuffer);
@@ -834,7 +849,7 @@ ApZeroLengthPackage (
     ACPI_PARSE_OBJECT           *Op)
 {
 
-    sprintf (AslGbl_MsgBuffer, "%s: length is zero", PredefinedName);
+    sprintf (AslGbl_MsgBuffer, "%4.4s: length is zero", PredefinedName);
 
     AslError (ASL_ERROR, ASL_MSG_RESERVED_PACKAGE_LENGTH, Op, AslGbl_MsgBuffer);
 }
@@ -863,7 +878,7 @@ ApPackageTooLarge (
     UINT32                      ExpectedCount)
 {
 
-    sprintf (AslGbl_MsgBuffer, "%s: length is %u, only %u required",
+    sprintf (AslGbl_MsgBuffer, "%4.4s: length is %u, only %u required",
         PredefinedName, Count, ExpectedCount);
 
     AslError (ASL_REMARK, ASL_MSG_RESERVED_PACKAGE_LENGTH, Op, AslGbl_MsgBuffer);

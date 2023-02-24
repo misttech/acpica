@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -43,6 +47,7 @@
 #include "acpihelp.h"
 #include "acpredef.h"
 
+BOOLEAN                  AslGbl_VerboseErrors = TRUE;
 
 /* Local prototypes */
 
@@ -264,7 +269,7 @@ AhDoSpecialNames (
     case 'E':
         if (Name[2] == 'J')
         {
-            if (isdigit (Name[3]) || (Name[3] == 'X'))
+            if (isdigit ((int) Name[3]) || (Name[3] == 'X'))
             {
                 /* _EJx */
 
@@ -273,12 +278,12 @@ AhDoSpecialNames (
             }
         }
 
-        /* Fallthrough */
+        ACPI_FALLTHROUGH;
 
     case 'L':
     case 'Q':
     case 'W':
-        if ((isxdigit (Name[2]) && isxdigit (Name[3]))
+        if ((isxdigit ((int) Name[2]) && isxdigit ((int) Name[3]))
                 ||
             ((Name[2] == 'X') && (Name[3] == 'X')))
         {
@@ -292,7 +297,7 @@ AhDoSpecialNames (
     case 'A':
         if ((Name[2] == 'C') || (Name[2] == 'L'))
         {
-            if (isdigit (Name[3]) || (Name[3] == 'X'))
+            if (isdigit ((int) Name[3]) || (Name[3] == 'X'))
             {
                 /* _ACx or _ALx */
 
@@ -596,11 +601,11 @@ AhDisplayTables (
     UINT32                  i = 0;
 
 
-    printf ("Known ACPI tables:\n");
+    printf ("Known/Supported ACPI tables:\n");
 
     for (Info = AcpiGbl_SupportedTables; Info->Signature; Info++)
     {
-        printf ("%8s : %s\n", Info->Signature, Info->Description);
+        printf ("%8u) %s : %s\n", i + 1, Info->Signature, Info->Description);
         i++;
     }
 

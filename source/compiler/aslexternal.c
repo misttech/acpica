@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -80,12 +84,62 @@ ExDoExternal (
     ACPI_PARSE_OBJECT       *Prev;
     ACPI_PARSE_OBJECT       *Next;
     ACPI_PARSE_OBJECT       *ArgCountOp;
+    ACPI_PARSE_OBJECT       *TypeOp;
+    ACPI_PARSE_OBJECT       *ExternTypeOp = Op->Asl.Child->Asl.Next;
+    UINT32                  ExternType;
+    UINT8                   ParamCount = ASL_EXTERNAL_METHOD_UNKNOWN_PARAMS;
+    UINT32                  ParamTypes[ACPI_METHOD_NUM_ARGS];
 
+
+    ExternType = AnMapObjTypeToBtype (ExternTypeOp);
+    if (ExternType != ACPI_BTYPE_METHOD)
+    {
+        /*
+         * If this is not a method, it has zero parameters this local variable
+         * is used only for methods
+         */
+        ParamCount = 0;
+    }
+
+    /*
+     * The parser allows optional parameter return types regardless of the
+     * type. Check object type keyword emit error if optional parameter/return
+     * types exist.
+     *
+     * Check the parameter return type
+     */
+    TypeOp = ExternTypeOp->Asl.Next;
+    if (TypeOp->Asl.Child)
+    {
+        /* Ignore the return type for now. */
+
+        (void) MtProcessTypeOp (TypeOp->Asl.Child);
+        if (ExternType != ACPI_BTYPE_METHOD)
+        {
+            sprintf (AslGbl_MsgBuffer, "Found type [%s]", AcpiUtGetTypeName(ExternType));
+            AslError (ASL_ERROR, ASL_MSG_EXTERN_INVALID_RET_TYPE, TypeOp,
+                AslGbl_MsgBuffer);
+        }
+    }
+
+    /* Check the parameter types */
+
+    TypeOp = TypeOp->Asl.Next;
+    if (TypeOp->Asl.Child)
+    {
+        ParamCount = MtProcessParameterTypeList (TypeOp->Asl.Child, ParamTypes);
+        if (ExternType != ACPI_BTYPE_METHOD)
+        {
+            sprintf (AslGbl_MsgBuffer, "Found type [%s]", AcpiUtGetTypeName(ExternType));
+            AslError (ASL_ERROR, ASL_MSG_EXTERN_INVALID_PARAM_TYPE, TypeOp,
+                AslGbl_MsgBuffer);
+        }
+    }
 
     ArgCountOp = Op->Asl.Child->Asl.Next->Asl.Next;
     ArgCountOp->Asl.AmlOpcode = AML_RAW_DATA_BYTE;
     ArgCountOp->Asl.ParseOpcode = PARSEOP_BYTECONST;
-    ArgCountOp->Asl.Value.Integer = 0;
+    ArgCountOp->Asl.Value.Integer = ParamCount;
     UtSetParseOpName (ArgCountOp);
 
     /* Create new list node of arbitrary type */

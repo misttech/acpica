@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -288,7 +292,7 @@ AcpiDmBlockType (
             return (BLOCK_NONE);
         }
 
-        /*lint -fallthrough */
+        ACPI_FALLTHROUGH;
 
     case AML_PACKAGE_OP:
     case AML_VARIABLE_PACKAGE_OP:
@@ -310,7 +314,7 @@ AcpiDmBlockType (
             return (BLOCK_NONE);
         }
 
-        /*lint -fallthrough */
+        ACPI_FALLTHROUGH;
 
     default:
 
@@ -576,7 +580,7 @@ AcpiDmDescendingOp (
                 return (AE_OK);
             }
 
-            /* Fallthrough */
+            ACPI_FALLTHROUGH;
 
         default:
 
@@ -660,7 +664,7 @@ AcpiDmDescendingOp (
                 AcpiDmNamestring (NextOp->Common.Value.Name);
                 AcpiOsPrintf (", ");
 
-                /*lint -fallthrough */
+                ACPI_FALLTHROUGH;
 
             default:
 
@@ -847,7 +851,15 @@ AcpiDmDescendingOp (
                 NextOp->Common.DisasmFlags |= ACPI_PARSEOP_IGNORE;
                 ASL_CV_CLOSE_PAREN (Op, Level);
 
-                /* Emit description comment for Name() with a predefined ACPI name */
+                if (Op->Asl.Parent->Common.AmlOpcode == AML_NAME_OP)
+                {
+                    /*
+                     * Emit description comment showing the full ACPI name
+                     * of the ResourceTemplate only if it was defined using a
+                     * Name statement.
+                     */
+                     AcpiDmPredefinedDescription (Op->Asl.Parent);
+                }
 
                 AcpiDmPredefinedDescription (Op->Asl.Parent);
 

@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -50,6 +54,8 @@ AeAddToErrorLog (
 
 static BOOLEAN
 AslIsExceptionExpected (
+    char                    *Filename,
+    UINT32                  LineNumber,
     UINT8                   Level,
     UINT16                  MessageId);
 
@@ -58,7 +64,8 @@ AslIsExceptionDisabled (
     UINT8                   Level,
     UINT16                  MessageId);
 
-static void AslInitEnode (
+static void
+AslInitEnode (
     ASL_ERROR_MSG           **Enode,
     UINT8                   Level,
     UINT16                  MessageId,
@@ -844,7 +851,7 @@ AslCommonError (
 {
     /* Check if user wants to ignore this exception */
 
-    if (AslIsExceptionIgnored (Level, MessageId))
+    if (AslIsExceptionIgnored (Filename, LogicalLineNumber, Level, MessageId))
     {
         return;
     }
@@ -910,7 +917,7 @@ AslLogNewError (
     AslGbl_ExceptionCount[ModifiedLevel]++;
     if (!AslGbl_IgnoreErrors && AslGbl_ExceptionCount[ASL_ERROR] > ASL_MAX_ERROR_COUNT)
     {
-        printf ("\nMaximum error count (%u) exceeded\n", ASL_MAX_ERROR_COUNT);
+        printf ("\nMaximum error count (%u) exceeded (aslerror.c)\n", ASL_MAX_ERROR_COUNT);
 
         AslGbl_SourceLine = 0;
         AslGbl_NextError = AslGbl_ErrorLog;
@@ -941,7 +948,7 @@ GetModifiedLevel (
     UINT8                   Level,
     UINT16                  MessageId)
 {
-    UINT16                  i;
+    UINT32                  i;
     UINT16                  ExceptionCode;
 
 
@@ -975,6 +982,8 @@ GetModifiedLevel (
 
 BOOLEAN
 AslIsExceptionIgnored (
+    char                    *Filename,
+    UINT32                  LineNumber,
     UINT8                   Level,
     UINT16                  MessageId)
 {
@@ -984,7 +993,8 @@ AslIsExceptionIgnored (
     /* Note: this allows exception to be disabled and expected */
 
     ExceptionIgnored = AslIsExceptionDisabled (Level, MessageId);
-    ExceptionIgnored |= AslIsExceptionExpected (Level, MessageId);
+    ExceptionIgnored |=
+        AslIsExceptionExpected (Filename, LineNumber, Level, MessageId);
 
     return (AslGbl_AllExceptionsDisabled || ExceptionIgnored);
 }
@@ -992,7 +1002,7 @@ AslIsExceptionIgnored (
 
 /*******************************************************************************
  *
- * FUNCTION:    AslCheckExpectException
+ * FUNCTION:    AslCheckExpectedException
  *
  * PARAMETERS:  none
  *
@@ -1007,7 +1017,9 @@ void
 AslCheckExpectedExceptions (
     void)
 {
-    UINT8                   i;
+    UINT32                  i;
+    ASL_EXPECTED_MSG_NODE   *Current = AslGbl_ExpectedErrorCodeList;
+    ASL_LOCATION_NODE       *LocationNode;
 
 
     for (i = 0; i < AslGbl_ExpectedMessagesIndex; ++i)
@@ -1018,12 +1030,32 @@ AslCheckExpectedExceptions (
                 AslGbl_ExpectedMessages[i].MessageIdStr);
         }
     }
+
+    while (Current)
+    {
+        LocationNode = Current->LocationList;
+
+        while (LocationNode)
+        {
+            if (!LocationNode->MessageReceived)
+            {
+                AslCommonError (ASL_ERROR, ASL_MSG_EXCEPTION_NOT_RECEIVED,
+                    LocationNode->LineNumber, LocationNode->LineNumber,
+                    LocationNode->LogicalByteOffset, LocationNode->Column,
+                    LocationNode->Filename, Current->MessageIdStr);
+            }
+
+            LocationNode = LocationNode->Next;
+        }
+
+        Current = Current->Next;
+    }
 }
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AslExpectException
+ * FUNCTION:    AslLogExpectedException
  *
  * PARAMETERS:  MessageIdString     - ID of excepted exception during compile
  *
@@ -1036,7 +1068,7 @@ AslCheckExpectedExceptions (
  ******************************************************************************/
 
 ACPI_STATUS
-AslExpectException (
+AslLogExpectedException (
     char                    *MessageIdString)
 {
     UINT32                  MessageId;
@@ -1048,7 +1080,7 @@ AslExpectException (
 
     if (MessageId > 6999)
     {
-        printf ("\"%s\" is not a valid warning/remark/erro ID\n",
+        printf ("\"%s\" is not a valid warning/remark/error ID\n",
             MessageIdString);
         return (AE_BAD_PARAMETER);
     }
@@ -1067,6 +1099,61 @@ AslExpectException (
     AslGbl_ExpectedMessages[AslGbl_ExpectedMessagesIndex].MessageReceived = FALSE;
     AslGbl_ExpectedMessagesIndex++;
     return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AslLogExpectedExceptionByLine
+ *
+ * PARAMETERS:  MessageIdString     - ID of excepted exception during compile
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Enter a message ID into the global expected messages table
+ *              based on file and line number. If these messages are not raised
+ *              during the compilation, throw an error.
+ *
+ ******************************************************************************/
+
+void
+AslLogExpectedExceptionByLine (
+    char                    *MessageIdString)
+{
+    ASL_LOCATION_NODE       *NewErrorLocationNode;
+    ASL_EXPECTED_MSG_NODE   *Current = AslGbl_ExpectedErrorCodeList;
+    UINT32                  MessageId;
+
+
+    NewErrorLocationNode = UtLocalCalloc (sizeof (ASL_LOCATION_NODE));
+
+    NewErrorLocationNode->LineNumber = AslGbl_CurrentLineNumber;
+    NewErrorLocationNode->Filename = AslGbl_Files[ASL_FILE_INPUT].Filename;
+    NewErrorLocationNode->LogicalByteOffset = AslGbl_CurrentLineOffset;
+    NewErrorLocationNode->Column = AslGbl_CurrentColumn;
+
+    MessageId = (UINT32) strtoul (MessageIdString, NULL, 0);
+
+    /* search the existing list for a matching message ID */
+
+    while (Current && Current->MessageId != MessageId )
+    {
+        Current = Current->Next;
+    }
+    if (!Current)
+    {
+        /* ID was not found, create a new node for this message ID */
+
+        Current = UtLocalCalloc (sizeof (ASL_EXPECTED_MSG_NODE));
+
+        Current->Next = AslGbl_ExpectedErrorCodeList;
+        Current->MessageIdStr = MessageIdString;
+        Current->MessageId = MessageId;
+        AslGbl_ExpectedErrorCodeList = Current;
+    }
+
+    NewErrorLocationNode->Next = Current->LocationList;
+    Current->LocationList = NewErrorLocationNode;
 }
 
 
@@ -1141,7 +1228,7 @@ AslElevateException (
 
     if (MessageId > 6999)
     {
-        printf ("\"%s\" is not a valid warning/remark/erro ID\n",
+        printf ("\"%s\" is not a valid warning/remark/error ID\n",
             MessageIdString);
         return (AE_BAD_PARAMETER);
     }
@@ -1160,6 +1247,7 @@ AslElevateException (
     return (AE_OK);
 }
 
+
 /*******************************************************************************
  *
  * FUNCTION:    AslIsExceptionDisabled
@@ -1176,9 +1264,13 @@ AslElevateException (
 
 static BOOLEAN
 AslIsExceptionExpected (
+    char                    *Filename,
+    UINT32                  LineNumber,
     UINT8                   Level,
     UINT16                  MessageId)
 {
+    ASL_EXPECTED_MSG_NODE   *Current = AslGbl_ExpectedErrorCodeList;
+    ASL_LOCATION_NODE       *CurrentErrorLocation;
     UINT32                  EncodedMessageId;
     UINT32                  i;
 
@@ -1194,6 +1286,28 @@ AslIsExceptionExpected (
         {
             return (AslGbl_ExpectedMessages[i].MessageReceived = TRUE);
         }
+    }
+
+    while (Current && Current->MessageId != EncodedMessageId)
+    {
+        Current = Current->Next;
+    }
+    if (!Current)
+    {
+        return (FALSE);
+    }
+
+    CurrentErrorLocation = Current->LocationList;
+
+    while (CurrentErrorLocation)
+    {
+        if (!strcmp (CurrentErrorLocation->Filename, Filename) &&
+            CurrentErrorLocation->LineNumber == LineNumber)
+        {
+            return (CurrentErrorLocation->MessageReceived = TRUE);
+        }
+
+        CurrentErrorLocation = CurrentErrorLocation->Next;
     }
 
     return (FALSE);
@@ -1234,7 +1348,7 @@ AslIsExceptionDisabled (
         {
             return (TRUE);
         }
-        /* Fall through */
+        ACPI_FALLTHROUGH;
 
     case ASL_WARNING:
     case ASL_REMARK:
@@ -1298,7 +1412,8 @@ AslDualParseOpError (
 
     /* Check if user wants to ignore this exception */
 
-    if (AslIsExceptionIgnored (Level, MainMsgId) || !MainOp)
+    if (!MainOp || AslIsExceptionIgnored (MainOp->Asl.Filename,
+        MainOp->Asl.LogicalLineNumber, Level, MainMsgId))
     {
         return;
     }
