@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -41,6 +45,7 @@
 #include "aslcompiler.y.h"
 #include "amlcode.h"
 #include "acconvert.h"
+#include "actbinfo.h"
 
 #define _COMPONENT          ACPI_COMPILER
         ACPI_MODULE_NAME    ("aslcodegen")
@@ -69,6 +74,10 @@ static void
 CgUpdateHeader (
     ACPI_PARSE_OBJECT       *Op);
 
+static void
+CgUpdateCdatHeader (
+    ACPI_PARSE_OBJECT       *Op);
+
 
 /*******************************************************************************
  *
@@ -95,7 +104,14 @@ CgGenerateAmlOutput (
         CgAmlWriteWalk, NULL, NULL);
 
     DbgPrint (ASL_TREE_OUTPUT, ASL_PARSE_TREE_HEADER2);
-    CgUpdateHeader (AslGbl_CurrentDB);
+    if (AcpiGbl_CDAT)
+    {
+        CgUpdateCdatHeader (AslGbl_CurrentDB);
+    }
+    else
+    {
+        CgUpdateHeader (AslGbl_CurrentDB);
+    }
 }
 
 
@@ -546,6 +562,67 @@ CgWriteTableHeader (
 
 /*******************************************************************************
  *
+ * FUNCTION:    CgUpdateCdatHeader
+ *
+ * PARAMETERS:  Op                  - Op for the Definition Block
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Complete the ACPI table by calculating the checksum and
+ *              re-writing the header for the input definition block
+ *
+ ******************************************************************************/
+
+static void
+CgUpdateCdatHeader (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    signed char             Sum;
+    UINT32                  i;
+    UINT32                  Length;
+    UINT8                   FileByte;
+    UINT8                   Checksum;
+
+
+    /* Calculate the checksum over the entire definition block */
+
+    Sum = 0;
+    Length = sizeof (ACPI_TABLE_CDAT) + Op->Asl.AmlSubtreeLength;
+    FlSeekFile (ASL_FILE_AML_OUTPUT, Op->Asl.FinalAmlOffset);
+
+    for (i = 0; i < Length; i++)
+    {
+        if (FlReadFile (ASL_FILE_AML_OUTPUT, &FileByte, 1) != AE_OK)
+        {
+            AslError (ASL_ERROR, ASL_MSG_COMPILER_INTERNAL, NULL,
+                "Table length is greater than size of the input file");
+            return;
+        }
+
+        Sum = (signed char) (Sum + FileByte);
+    }
+
+    Checksum = (UINT8) (0 - Sum);
+
+    DbgPrint (ASL_DEBUG_OUTPUT, "Computed checksum = %X\n", Checksum);
+
+    /* Re-write the checksum byte */
+
+    FlSeekFile (ASL_FILE_AML_OUTPUT, Op->Asl.FinalAmlOffset +
+        ACPI_CDAT_OFFSET (Checksum));
+
+    FlWriteFile (ASL_FILE_AML_OUTPUT, &Checksum, 1);
+
+    /*
+     * Seek to the end of the file. This is done to support multiple file
+     * compilation. Doing this simplifies other parts of the codebase because
+     * it eliminates the need to seek for a different starting place.
+     */
+    FlSeekFile (ASL_FILE_AML_OUTPUT, Op->Asl.FinalAmlOffset + Length);
+}
+
+/*******************************************************************************
+ *
  * FUNCTION:    CgUpdateHeader
  *
  * PARAMETERS:  Op                  - Op for the Definition Block
@@ -588,7 +665,7 @@ CgUpdateHeader (
 
     Checksum = (UINT8) (0 - Sum);
 
-    /* Re-write the the checksum byte */
+    /* Re-write the checksum byte */
 
     FlSeekFile (ASL_FILE_AML_OUTPUT, Op->Asl.FinalAmlOffset +
         ACPI_OFFSET (ACPI_TABLE_HEADER, Checksum));

@@ -28,6 +28,7 @@ config("disable_warnings") {
   visibility = [ ":*" ]
 
   cflags = [
+    "-Wno-extern-c-compat",
     "-Wno-implicit-fallthrough",
     "-Wno-incompatible-pointer-types-discards-qualifiers",
     "-Wno-null-pointer-arithmetic",
@@ -77,8 +78,6 @@ static_library("acpica") {
     "source/common/ahpredef.c",
     "source/common/ahtable.c",
     "source/common/dmtbdump.c",
-    "source/common/dmtbdump1.c",
-    "source/common/dmtbdump2.c",
     "source/common/dmtbdump3.c",
     "source/common/dmtbinfo.c",
     "source/common/dmtbinfo1.c",
@@ -212,6 +211,7 @@ static_library("acpica") {
     "source/components/utilities/utascii.c",
     "source/components/utilities/utbuffer.c",
     "source/components/utilities/utcache.c",
+    "source/components/utilities/utcksum.c",
     "source/components/utilities/utclib.c",
     "source/components/utilities/utcopy.c",
     "source/components/utilities/utdebug.c",

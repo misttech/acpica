@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -83,7 +87,9 @@ AcpiDmDumpBuffer (
     char                    *Header)
 {
     UINT8                   *Buffer;
+    UINT8                   BufChar;
     UINT32                  i;
+    UINT32                  j;
 
 
     if (!Length)
@@ -96,20 +102,72 @@ AcpiDmDumpBuffer (
 
     while (i < Length)
     {
-        if (!(i % 16))
+        if ((Length > 16) && (i != 0))
         {
-            /* Insert a backslash - line continuation character */
+        if ((Length - i) < 16)
+            AcpiOsPrintf ("\n/* %3.3Xh %4.4u %3u */                            ", AbsoluteOffset, AbsoluteOffset, Length - i);
+        else
+            AcpiOsPrintf ("\n/* %3.3Xh %4.4u  16 */                            ", AbsoluteOffset, AbsoluteOffset);
+        }
+        AbsoluteOffset += 16;
 
-            if (Length > 16)
+        /* Emit the raw data bytes*/
+
+        for (j = 0; j < 16; j++)
+        {
+            if (i + j >= Length)
             {
-                AcpiOsPrintf ("\\\n    ");
+                /* Dump fill spaces */
+
+                AcpiOsPrintf ("%*s", (48 - (3 * (Length -i))), " ");
+                break;
+            }
+            AcpiOsPrintf ("%.02X ", Buffer[(ACPI_SIZE) i + j]);
+        }
+
+        /* Emit the ASCII equivalent to the raw data bytes */
+
+        for (j = 0; j < 16; j++)
+        {
+            if (i + j >= Length)
+            {
+                AcpiOsPrintf (" */\\\n");
+                return;
+            }
+
+            /*
+             * Add comment characters so rest of line is ignored when
+             * compiled
+             */
+            if (j == 0)
+            {
+                AcpiOsPrintf ("/* ");
+            }
+
+            BufChar = Buffer[(ACPI_SIZE) i + j];
+            if (isprint (BufChar))
+            {
+                AcpiOsPrintf ("%c", BufChar);
+            }
+            else
+            {
+                AcpiOsPrintf (".");
             }
         }
 
-        AcpiOsPrintf ("%.02X ", *Buffer);
-        i++;
-        Buffer++;
-        AbsoluteOffset++;
+        /* Done with that line. */
+        /* Close the comment and insert a backslash - line continuation character */
+
+        if (Length > 16)
+        {
+            AcpiOsPrintf (" */\\");
+        }
+        else
+        {
+            AcpiOsPrintf (" */\\");
+        }
+
+        i += 16; /* Point to next line */
     }
 
     AcpiOsPrintf ("\n");
@@ -218,7 +276,7 @@ AcpiDmDumpRsdp (
 
     /* Validate the first checksum */
 
-    Checksum = AcpiDmGenerateChecksum (Rsdp, sizeof (ACPI_RSDP_COMMON),
+    Checksum = AcpiUtGenerateChecksum (Rsdp, sizeof (ACPI_RSDP_COMMON),
         Rsdp->Checksum);
     if (Checksum != Rsdp->Checksum)
     {
@@ -239,7 +297,7 @@ AcpiDmDumpRsdp (
 
         /* Validate the extended checksum over entire RSDP */
 
-        Checksum = AcpiDmGenerateChecksum (Rsdp, sizeof (ACPI_TABLE_RSDP),
+        Checksum = AcpiUtGenerateChecksum (Rsdp, sizeof (ACPI_TABLE_RSDP),
             Rsdp->ExtendedChecksum);
         if (Checksum != Rsdp->ExtendedChecksum)
         {

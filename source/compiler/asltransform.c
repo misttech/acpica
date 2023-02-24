@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -92,6 +96,10 @@ static BOOLEAN
 TrCheckForBufferMatch (
     ACPI_PARSE_OBJECT       *Next1,
     ACPI_PARSE_OBJECT       *Next2);
+
+static void
+TrDoMethod (
+    ACPI_PARSE_OBJECT       *Op);
 
 
 /*******************************************************************************
@@ -351,11 +359,8 @@ TrTransformSubtree (
         break;
 
     case PARSEOP_METHOD:
-        /*
-         * TBD: Zero the tempname (_T_x) count. Probably shouldn't be a global,
-         * however
-         */
-        AslGbl_TempCount = 0;
+
+        TrDoMethod (Op);
         break;
 
     case PARSEOP_EXTERNAL:
@@ -426,6 +431,11 @@ TrTransformSubtree (
     case PARSEOP_PROCESSOR:
 
         AslError (ASL_WARNING, ASL_MSG_LEGACY_PROCESSOR_OP, Op, Op->Asl.ExternalName);
+        break;
+
+    case PARSEOP_OBJECTTYPE_DDB:
+
+        AslError (ASL_WARNING, ASL_MSG_LEGACY_DDB_TYPE, Op, Op->Asl.ExternalName);
         break;
 
     default:
@@ -1127,4 +1137,77 @@ TrCheckForBufferMatch (
     /* Otherwise, the buffers match */
 
     return (TRUE);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    TrDoMethod
+ *
+ * PARAMETERS:  Op               - Parse node for SWITCH
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Determine that parameter count of an ASL method node by
+ *              translating the parameter count parse node from
+ *              PARSEOP_DEFAULT_ARG to PARSEOP_BYTECONST.
+ *
+ ******************************************************************************/
+
+static void
+TrDoMethod (
+    ACPI_PARSE_OBJECT       *Op)
+{
+    ACPI_PARSE_OBJECT           *ArgCountOp;
+    UINT8                       ArgCount;
+    ACPI_PARSE_OBJECT           *ParameterOp;
+
+
+    /*
+     * TBD: Zero the tempname (_T_x) count. Probably shouldn't be a global,
+     * however
+     */
+    AslGbl_TempCount = 0;
+
+    ArgCountOp = Op->Asl.Child->Asl.Next;
+    if (ArgCountOp->Asl.ParseOpcode == PARSEOP_BYTECONST)
+    {
+        /*
+         * Parameter count for this method has already been recorded in the
+         * method declaration.
+         */
+        return;
+    }
+
+    /*
+     * Parameter count has been omitted in the method declaration.
+     * Count the amount of arguments here.
+     */
+    ParameterOp = ArgCountOp->Asl.Next->Asl.Next->Asl.Next->Asl.Next;
+    if (ParameterOp->Asl.ParseOpcode == PARSEOP_DEFAULT_ARG)
+    {
+        ArgCount = 0;
+        ParameterOp = ParameterOp->Asl.Child;
+
+        while (ParameterOp)
+        {
+            ParameterOp = ParameterOp->Asl.Next;
+            ArgCount++;
+        }
+
+        ArgCountOp->Asl.Value.Integer = ArgCount;
+        ArgCountOp->Asl.ParseOpcode = PARSEOP_BYTECONST;
+    }
+    else
+    {
+        /*
+         * Method parameters can be counted by analyzing the Parameter type
+         * list. If the Parameter list contains more than 1 parameter, it
+         * is nested under PARSEOP_DEFAULT_ARG. When there is only 1
+         * parameter, the parse tree contains a single node representing
+         * that type.
+         */
+        ArgCountOp->Asl.Value.Integer = 1;
+        ArgCountOp->Asl.ParseOpcode = PARSEOP_BYTECONST;
+    }
 }

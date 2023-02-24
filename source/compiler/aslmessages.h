@@ -5,7 +5,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,10 +23,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -39,7 +43,6 @@
 
 #ifndef __ASLMESSAGES_H
 #define __ASLMESSAGES_H
-
 
 /* These values must match error type string tables in aslmessages.c */
 
@@ -55,8 +58,11 @@ typedef enum
 
 } ASL_MESSAGE_TYPES;
 
-
 #define ASL_ERROR_LEVEL_LENGTH          8 /* Length of strings for types above */
+
+void
+AhDecodeAslException (
+    char                    *HexString);
 
 /*
  * Exception code blocks, 0 - 999
@@ -261,6 +267,22 @@ typedef enum
     ASL_MSG_LEGACY_PROCESSOR_OP,
     ASL_MSG_NAMESTRING_LENGTH,
     ASL_MSG_CASE_FOUND_HERE,
+    ASL_MSG_EXTERN_INVALID_RET_TYPE,
+    ASL_MSG_EXTERN_INVALID_PARAM_TYPE,
+    ASL_MSG_NAMED_OBJECT_CREATION,
+    ASL_MSG_ARG_COUNT_MISMATCH,
+    ASL_MSG_STATIC_OPREGION_IN_METHOD,
+    ASL_MSG_DECLARATION_TYPE_MISMATCH,
+    ASL_MSG_TYPE_MISMATCH_FOUND_HERE,
+    ASL_MSG_DUPLICATE_EXTERN_MISMATCH,
+    ASL_MSG_DUPLICATE_EXTERN_FOUND_HERE,
+    ASL_MSG_CONDREF_NEEDS_EXTERNAL_DECL,
+    ASL_MSG_EXTERNAL_FOUND_HERE,
+    ASL_MSG_LOWER_CASE_NAMESEG,
+    ASL_MSG_LOWER_CASE_NAMEPATH,
+    ASL_MSG_UUID_NOT_FOUND,
+    ASL_MSG_LEGACY_DDB_TYPE,
+
 
     /* These messages are used by the Data Table compiler only */
 
@@ -272,7 +294,7 @@ typedef enum
     ASL_MSG_INVALID_FIELD_NAME,
     ASL_MSG_INVALID_HEX_INTEGER,
     ASL_MSG_OEM_TABLE,
-    ASL_MSG_RESERVED_VALUE,
+    ASL_MSG_RESERVED_FIELD,
     ASL_MSG_UNKNOWN_LABEL,
     ASL_MSG_UNKNOWN_SUBTABLE,
     ASL_MSG_UNKNOWN_TABLE,
@@ -280,6 +302,10 @@ typedef enum
     ASL_MSG_INVALID_LABEL,
     ASL_MSG_BUFFER_LIST,
     ASL_MSG_ENTRY_LIST,
+    ASL_MSG_UNKNOWN_FORMAT,
+    ASL_MSG_RESERVED_VALUE,
+    ASL_MSG_TWO_ZERO_VALUES,
+    ASL_MSG_BAD_PARSE_TREE,
 
     /* These messages are used by the Preprocessor only */
 
