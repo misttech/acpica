@@ -202,6 +202,7 @@
 #define ACPI_USE_STANDARD_HEADERS
 
 #ifdef ACPI_USE_STANDARD_HEADERS
+#include <stddef.h>
 #include <unistd.h>
 #endif
 
@@ -237,6 +238,10 @@
 #ifndef __cdecl
 #define __cdecl
 #endif
+
+// Upstream fixed this for Linux *kernel* builds only.
+// See https://github.com/acpica/acpica/commit/84449c1.
+#define ACPI_OFFSET(d, f)           offsetof(d, f)
 
 #endif /* __KERNEL__ */
 
