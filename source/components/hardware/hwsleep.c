@@ -6,7 +6,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2020, Intel Corp.
+ * Copyright (C) 2000 - 2022, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,10 +24,14 @@
  *    of any contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
  *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ *
  * NO WARRANTY
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
  * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
@@ -40,10 +44,6 @@
 
 #include "acpi.h"
 #include "accommon.h"
-
-#ifdef __Fuchsia__
-#include <zircon/syscalls/system.h>
-#endif
 
 #define _COMPONENT          ACPI_HARDWARE
         ACPI_MODULE_NAME    ("hwsleep")
@@ -112,42 +112,6 @@ AcpiHwLegacySleep (
         return_ACPI_STATUS (Status);
     }
 
-    /* The upstream ACPICA code expects that AcpiHwLegacySleep() is invoked
-     * with interrupts disabled.  It requires this because the last steps of
-     * going to sleep is writing to a few registers, flushing the caches (so we
-     * don't lose data if the caches are dropped), and then writing to a
-     * register to enter the sleep.  If we were to take an interrupt after the
-     * cache flush but before entering sleep, we could have inconsistent memory
-     * after waking up.*/
-
-    /* In Fuchsia, ACPICA runs in usermode and we don't expose a mechanism for
-     * it to disable interrupts.  For a full shutdown (sleep state 5) this does
-     * not matter as caches are dropped due to power loss regardless.  For any
-     * other sleep state transition, to ensure a consistent sleep, we notionally
-     * split AcpiHwLegacySleep into two parts, the first part that doesn't need
-     * interrupts disabled which is executed by ACPICA in usermode, and then the
-     * second part that does for which we make a syscall into the kernel to
-     * execute the final steps. */
-
-#if defined(__Fuchsia__) && !defined(_KERNEL)
-    if (SleepState != 5) {
-        extern zx_handle_t get_root_resource(void);
-
-        zx_system_powerctl_arg_t arg;
-        arg.acpi_transition_s_state.target_s_state = SleepState;
-        arg.acpi_transition_s_state.sleep_type_a = AcpiGbl_SleepTypeA;
-        arg.acpi_transition_s_state.sleep_type_b = AcpiGbl_SleepTypeB;
-        zx_status_t zx_status = zx_system_powerctl(get_root_resource(), 
-            ZX_SYSTEM_POWERCTL_ACPI_TRANSITION_S_STATE, &arg);
-        if (zx_status == ZX_OK) {
-            Status = AE_OK;
-        } else {
-            Status = AE_ERROR;
-        }
-        return_ACPI_STATUS (Status);
-    }
-#endif
-
     /* Get current value of PM1A control */
 
     Status = AcpiHwRegisterRead (ACPI_REGISTER_PM1_CONTROL,
@@ -190,7 +154,10 @@ AcpiHwLegacySleep (
 
     /* Flush caches, as per ACPI specification */
 
-    ACPI_FLUSH_CPU_CACHE ();
+    if (SleepState < ACPI_STATE_S4)
+    {
+        ACPI_FLUSH_CPU_CACHE ();
+    }
 
     Status = AcpiOsEnterSleep (SleepState, Pm1aControl, Pm1bControl);
     if (Status == AE_CTRL_TERMINATE)
@@ -267,7 +234,7 @@ ACPI_STATUS
 AcpiHwLegacyWakePrep (
     UINT8                   SleepState)
 {
-    ACPI_STATUS             Status;
+    ACPI_STATUS             Status = AE_OK;
     ACPI_BIT_REGISTER_INFO  *SleepTypeRegInfo;
     ACPI_BIT_REGISTER_INFO  *SleepEnableRegInfo;
     UINT32                  Pm1aControl;
@@ -281,9 +248,7 @@ AcpiHwLegacyWakePrep (
      * This is unclear from the ACPI Spec, but it is required
      * by some machines.
      */
-    Status = AcpiGetSleepTypeData (ACPI_STATE_S0,
-        &AcpiGbl_SleepTypeA, &AcpiGbl_SleepTypeB);
-    if (ACPI_SUCCESS (Status))
+    if (AcpiGbl_SleepTypeAS0 != ACPI_SLEEP_TYPE_INVALID)
     {
         SleepTypeRegInfo =
             AcpiHwGetBitRegisterInfo (ACPI_BITREG_SLEEP_TYPE);
@@ -304,9 +269,9 @@ AcpiHwLegacyWakePrep (
 
             /* Insert the SLP_TYP bits */
 
-            Pm1aControl |= (AcpiGbl_SleepTypeA <<
+            Pm1aControl |= (AcpiGbl_SleepTypeAS0 <<
                 SleepTypeRegInfo->BitPosition);
-            Pm1bControl |= (AcpiGbl_SleepTypeB <<
+            Pm1bControl |= (AcpiGbl_SleepTypeBS0 <<
                 SleepTypeRegInfo->BitPosition);
 
             /* Write the control registers and ignore any errors */
@@ -391,6 +356,26 @@ AcpiHwLegacyWake (
     (void) AcpiWriteBitRegister(
             AcpiGbl_FixedEventInfo[ACPI_EVENT_POWER_BUTTON].StatusRegisterId,
             ACPI_CLEAR_STATUS);
+
+    /* Enable sleep button */
+
+    (void) AcpiWriteBitRegister (
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_SLEEP_BUTTON].EnableRegisterId,
+            ACPI_ENABLE_EVENT);
+
+    (void) AcpiWriteBitRegister (
+            AcpiGbl_FixedEventInfo[ACPI_EVENT_SLEEP_BUTTON].StatusRegisterId,
+            ACPI_CLEAR_STATUS);
+
+    /* Enable pcie wake event if support */
+    if ((AcpiGbl_FADT.Flags & ACPI_FADT_PCI_EXPRESS_WAKE)) {
+        (void) AcpiWriteBitRegister (
+		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].EnableRegisterId,
+		ACPI_DISABLE_EVENT);
+        (void) AcpiWriteBitRegister (
+		AcpiGbl_FixedEventInfo[ACPI_EVENT_PCIE_WAKE].StatusRegisterId,
+		ACPI_CLEAR_STATUS);
+    }
 
     AcpiHwExecuteSleepMethod (METHOD_PATHNAME__SST, ACPI_SST_WORKING);
     return_ACPI_STATUS (Status);
