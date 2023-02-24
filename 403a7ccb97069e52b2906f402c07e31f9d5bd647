@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "005cbaa0_851fc7d4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2023-02-24T23:25:09Z",
+      "side": 1,
+      "message": "Dry run in http://tqr/668310.",
+      "revId": "403a7ccb97069e52b2906f402c07e31f9d5bd647",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
