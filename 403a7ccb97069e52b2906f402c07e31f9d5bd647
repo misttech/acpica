@@ -26,6 +26,30 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "fcd109a2_eefb6df3",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2023-02-27T19:15:40Z",
+      "side": 1,
+      "message": "That\u0027s not what we want. `d64c6652f263a2d91f33657aa07867c555733182` is *our* revision, not upstream\u0027s. The content of this repo is specifically not taken from upstream because we want to use their dual-license tarball rather than the intel license.",
+      "parentUuid": "7d22a7d8_94bd0029",
+      "range": {
+        "startLine": 12,
+        "startChar": 34,
+        "endLine": 12,
+        "endChar": 74
+      },
+      "revId": "403a7ccb97069e52b2906f402c07e31f9d5bd647",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "005cbaa0_851fc7d4",
         "filename": "/PATCHSET_LEVEL",
         "patchSetId": 4
