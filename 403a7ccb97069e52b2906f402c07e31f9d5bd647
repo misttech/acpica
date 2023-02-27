@@ -1,6 +1,29 @@
 {
   "comments": [
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "7d22a7d8_94bd0029",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 4
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 5232
+      },
+      "writtenOn": "2023-02-27T19:06:26Z",
+      "side": 1,
+      "message": "You can use the `R01_10_20` tag, that\u0027s the release we used. When I checked the repo the revision was `f78d50aacc2a1c6dfa59052a696a54cec16e6aab`, I\u0027m having trouble finding any reference to `d64c665` for some reason.\n\nI\u0027d suggest just using the tag though since it provides additional context.",
+      "range": {
+        "startLine": 12,
+        "startChar": 34,
+        "endLine": 12,
+        "endChar": 74
+      },
+      "revId": "403a7ccb97069e52b2906f402c07e31f9d5bd647",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "005cbaa0_851fc7d4",
