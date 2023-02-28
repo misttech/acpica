@@ -16,6 +16,24 @@
       "message": "Could you elaborate bit on how this is avoiding undefined behavior? If this symbol was missing wouldn\u0027t compilation fail?",
       "revId": "1a55d9b9811d66b3296f480fc4076b7e4c3e231c",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "07671103_3eca7c2c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2023-02-28T00:23:36Z",
+      "side": 1,
+      "message": "This is a macro, not a symbol. There\u0027s a default define in a non-platform-specific file that triggers UB.\n\nhttps://cs.opensource.google/fuchsia/fuchsia/+/main:third_party/acpica/source/include/actypes.h;l\u003d555;drc\u003d29a719b331979107272b834e326c1584d95ef695\n\nThere\u0027s more detail in the upstream commit. Does that suit?",
+      "parentUuid": "2438d7b7_038e579b",
+      "revId": "1a55d9b9811d66b3296f480fc4076b7e4c3e231c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
