@@ -22,6 +22,30 @@
       },
       "revId": "4acf3b400c6d181f0b76913cd5da96dc6db4c904",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2b4e9dd9_04207b9f",
+        "filename": "source/components/dispatcher/dswstate.c",
+        "patchSetId": 5
+      },
+      "lineNbr": 687,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2023-02-28T00:22:27Z",
+      "side": 1,
+      "message": "\u003e Just to make sure I follow, the problem was that `AmlStart` could be NULL at the same time `AmlLength` was zero, so the UB was that it was doing `NULL + 0`?\n\nCorrect.\n\n\u003e Whereas now it unconditionally sets up the pointer and only does the addition if `AmlLength` is non-zero, which implies that `AmlStart` will be a valid pointer? If that\u0027s the case, would `if (AmlStart !\u003d NULL) {` be more correct?\n\nI don\u0027t see any reason that `AmlStart` has to be a valid pointer. In fact, if it is NULL and `AmlLength` is non-zero, we *want* to trigger UB. What you describe would change behavior when `AmlStart` is NULL and `AmlLength` is non-zero, and we *don\u0027t* want that.",
+      "parentUuid": "3b1fd69a_7cd76a1c",
+      "range": {
+        "startLine": 683,
+        "startChar": 3,
+        "endLine": 687,
+        "endChar": 5
+      },
+      "revId": "4acf3b400c6d181f0b76913cd5da96dc6db4c904",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
