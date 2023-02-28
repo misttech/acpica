@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2438d7b7_038e579b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 5232
+      },
+      "writtenOn": "2023-02-28T00:13:27Z",
+      "side": 1,
+      "message": "Could you elaborate bit on how this is avoiding undefined behavior? If this symbol was missing wouldn\u0027t compilation fail?",
+      "revId": "1a55d9b9811d66b3296f480fc4076b7e4c3e231c",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    }
+  ]
+}
