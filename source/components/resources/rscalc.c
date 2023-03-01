@@ -625,14 +625,19 @@ AcpiRsGetListLength (
             }
             break;
 
-        case ACPI_RESOURCE_NAME_SERIAL_BUS:
+        case ACPI_RESOURCE_NAME_SERIAL_BUS: {
+            /* Avoid undefined behavior: member access within misaligned address */
+
+            AML_RESOURCE_COMMON_SERIALBUS CommonSerialBus;
+            memcpy(&CommonSerialBus, AmlResource, sizeof(CommonSerialBus));
 
             MinimumAmlResourceLength = AcpiGbl_ResourceAmlSerialBusSizes[
-                AmlResource->CommonSerialBus.Type];
+                CommonSerialBus.Type];
             ExtraStructBytes +=
-                AmlResource->CommonSerialBus.ResourceLength -
+                CommonSerialBus.ResourceLength -
                 MinimumAmlResourceLength;
             break;
+        }
 
         case ACPI_RESOURCE_NAME_PIN_CONFIG:
 
