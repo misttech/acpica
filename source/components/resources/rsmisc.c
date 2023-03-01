@@ -239,13 +239,16 @@ AcpiRsConvertAmlToResource (
             ACPI_SET16 (Destination, ItemCount);
             break;
 
-        case ACPI_RSC_COUNT_SERIAL_VEN:
+        case ACPI_RSC_COUNT_SERIAL_VEN: {
 
-            ItemCount = ACPI_GET16 (Source) - Info->Value;
+            UINT16 Source_Value;
+            ACPI_MOVE_16_TO_16(&Source_Value, Source);
+            ItemCount = Source_Value - Info->Value;
 
             Resource->Length = Resource->Length + ItemCount;
             ACPI_SET16 (Destination, ItemCount);
             break;
+        }
 
         case ACPI_RSC_COUNT_SERIAL_RES:
 
