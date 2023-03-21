@@ -713,6 +713,8 @@ TrAllocateOp (
     ACPI_PARSE_OBJECT       *Op;
     ACPI_PARSE_OBJECT       *LatestOp;
 
+    ACPI_FUNCTION_NAME (TrAllocateOp);
+
 
     Op = UtParseOpCacheCalloc ();
 

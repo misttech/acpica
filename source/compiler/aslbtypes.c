@@ -397,6 +397,7 @@ AnGetBtype (
     ACPI_PARSE_OBJECT       *ReferencedNode;
     UINT32                  ThisNodeBtype = 0;
 
+    ACPI_FUNCTION_NAME (AnGetBtype);
 
     if (!Op)
     {
