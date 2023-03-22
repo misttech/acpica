@@ -105,7 +105,12 @@ AcpiRsConvertAmlToResources (
     if (AcpiUtGetResourceType (Aml) ==
         ACPI_RESOURCE_NAME_SERIAL_BUS)
     {
-        if (AmlResource->CommonSerialBus.Type >
+        /* Avoid undefined behavior: member access within misaligned address */
+
+        AML_RESOURCE_COMMON_SERIALBUS CommonSerialBus;
+        memcpy(&CommonSerialBus, AmlResource, sizeof(CommonSerialBus));
+
+        if (CommonSerialBus.Type >
             AML_RESOURCE_MAX_SERIALBUSTYPE)
         {
             ConversionTable = NULL;
@@ -115,7 +120,7 @@ AcpiRsConvertAmlToResources (
             /* This is an I2C, SPI, UART, or CSI2 SerialBus descriptor */
 
             ConversionTable = AcpiGbl_ConvertResourceSerialBusDispatch [
-                AmlResource->CommonSerialBus.Type];
+                CommonSerialBus.Type];
         }
     }
     else
