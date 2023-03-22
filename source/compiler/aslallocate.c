@@ -191,9 +191,13 @@ void
 UtFreeLineBuffers (
     void)
 {
-
     free (AslGbl_CurrentLineBuffer);
+
     free (AslGbl_MainTokenBuffer);
+
     free (AslGbl_MacroTokenBuffer);
+
+    free (AslGbl_MacroTokenReplaceBuffer);
+
     free (AslGbl_ExpressionTokenBuffer);
 }

@@ -676,8 +676,9 @@ PrDoDirective (
         TokenOffset = Token - AslGbl_MainTokenBuffer + strlen (Token);
         if (*(&AslGbl_CurrentLineBuffer[TokenOffset]) == '(')
         {
-#ifndef MACROS_SUPPORTED
-            AcpiOsPrintf (
+
+#ifdef MACROS_SUPPORTED
+            AcpiOsPrintf(
                 "%s ERROR - line %u: #define macros are not supported yet\n",
                 AslGbl_CurrentLineBuffer, AslGbl_LogicalLineNumber);
             exit(1);
@@ -685,6 +686,8 @@ PrDoDirective (
             PrAddMacro (Token, Next);
 #endif
         }
+
+
         else
         {
             /* Use the remainder of the line for the #define */
