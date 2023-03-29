@@ -1126,7 +1126,6 @@ AsTabify8 (
     char                    *NewSubBuffer;
     char                    *CommentEnd = NULL;
     UINT32                  SpaceCount = 0;
-    UINT32                  Column = 0;
     UINT32                  TabCount = 0;
     UINT32                  LastLineTabCount = 0;
     UINT32                  LastLineColumnStart = 0;
@@ -1142,7 +1141,6 @@ AsTabify8 (
             /* This is a standalone blank line */
 
             FirstNonBlank = NULL;
-            Column = 0;
             SpaceCount = 0;
             TabCount = 0;
             SubBuffer++;
@@ -1180,8 +1178,6 @@ AsTabify8 (
                 ThisTabCount = LastLineTabCount + 1;
             }
         }
-
-        Column++;
 
         /* Check if we are in a comment */
 
@@ -1275,7 +1271,6 @@ AsTabify8 (
 
             FirstNonBlank = NULL;
             LastLineColumnStart = ThisColumnStart;
-            Column = 0;
             SpaceCount = 0;
         }
         else
