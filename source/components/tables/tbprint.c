@@ -190,4 +190,3 @@ AcpiTbPrintTableHeader (
             LocalHeader.AslCompilerId, LocalHeader.AslCompilerRevision));
     }
 }
-
