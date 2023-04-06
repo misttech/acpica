@@ -56,6 +56,30 @@
       },
       "revId": "5ffe545c73fbb2129ae756b6a939f04188347b97",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "53baf59b_32deb036",
+        "filename": "source/compiler/prmacros.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2023-04-06T20:56:46Z",
+      "side": 1,
+      "message": "nope, here it is upstream https://github.com/acpica/acpica/blob/1631c7f3e9d89e55854710b09145bff99c8246b8/source/compiler/prmacros.c#L396",
+      "parentUuid": "d3d72c13_1f47629f",
+      "range": {
+        "startLine": 288,
+        "startChar": 0,
+        "endLine": 288,
+        "endChar": 42
+      },
+      "revId": "5ffe545c73fbb2129ae756b6a939f04188347b97",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ],
   "submitRequirementResults": [
