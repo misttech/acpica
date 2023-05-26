@@ -135,13 +135,13 @@ AcpiHwLegacySleep (
 
 #if defined(__Fuchsia__) && !defined(_KERNEL)
     if (SleepState != 5) {
-        extern zx_handle_t get_root_resource(void);
+        extern zx_handle_t acpi_root_resource;
 
         zx_system_powerctl_arg_t arg;
         arg.acpi_transition_s_state.target_s_state = SleepState;
         arg.acpi_transition_s_state.sleep_type_a = AcpiGbl_SleepTypeA;
         arg.acpi_transition_s_state.sleep_type_b = AcpiGbl_SleepTypeB;
-        zx_status_t zx_status = zx_system_powerctl(get_root_resource(),
+        zx_status_t zx_status = zx_system_powerctl(acpi_root_resource,
             ZX_SYSTEM_POWERCTL_ACPI_TRANSITION_S_STATE, &arg);
         if (zx_status == ZX_OK) {
             Status = AE_OK;
