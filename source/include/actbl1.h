@@ -612,6 +612,8 @@ typedef struct acpi_cdat_sslbe
 
 } ACPI_CDAT_SSLBE;
 
+#define ACPI_CDAT_SSLBIS_US_PORT	0x0100
+#define ACPI_CDAT_SSLBIS_ANY_PORT	0xffff
 
 /*******************************************************************************
  *
