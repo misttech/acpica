@@ -1921,10 +1921,6 @@ AcpiDmDumpPhat (
                 Offset += VendorLength;
             }
 
-            if (ACPI_FAILURE (Status))
-            {
-                return;
-            }
             break;
 
         default:
