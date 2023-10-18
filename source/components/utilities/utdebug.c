@@ -86,7 +86,6 @@ AcpiUtInitStackPtrTrace (
 #pragma GCC diagnostic ignored "-Wdangling-pointer="
 #endif
     AcpiGbl_EntryStackPointer = &CurrentSp;
-#pragma GCC diagnostic pop
 }
 
 
@@ -112,6 +111,7 @@ AcpiUtTrackStackPtr (
     if (&CurrentSp < AcpiGbl_LowestStackPointer)
     {
         AcpiGbl_LowestStackPointer = &CurrentSp;
+#pragma GCC diagnostic pop
     }
 
     if (AcpiGbl_NestingLevel > AcpiGbl_DeepestNesting)
