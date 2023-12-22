@@ -771,6 +771,7 @@ AcpiDmDumpMadt (
     UINT32                  Length = Table->Length;
     UINT32                  Offset = sizeof (ACPI_TABLE_MADT);
     ACPI_DMTABLE_INFO       *InfoTable;
+    UINT8                   Revision;
 
 
     /* Main table */
@@ -780,6 +781,8 @@ AcpiDmDumpMadt (
     {
         return;
     }
+
+    Revision = Table->Revision;
 
     /* Subtables */
 
@@ -858,7 +861,12 @@ AcpiDmDumpMadt (
 
         case ACPI_MADT_TYPE_GENERIC_INTERRUPT:
 
-            InfoTable = AcpiDmTableInfoMadt11;
+	    if (Revision > 6)
+                    InfoTable = AcpiDmTableInfoMadt11b;
+	    else if (Revision == 6)
+                    InfoTable = AcpiDmTableInfoMadt11a;
+	    else
+                    InfoTable = AcpiDmTableInfoMadt11;
             break;
 
         case ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR:
@@ -873,12 +881,14 @@ AcpiDmDumpMadt (
 
         case ACPI_MADT_TYPE_GENERIC_REDISTRIBUTOR:
 
-            InfoTable = AcpiDmTableInfoMadt14;
+            InfoTable = Revision > 6 ? AcpiDmTableInfoMadt14a :
+				AcpiDmTableInfoMadt14;
             break;
 
         case ACPI_MADT_TYPE_GENERIC_TRANSLATOR:
 
-            InfoTable = AcpiDmTableInfoMadt15;
+            InfoTable = Revision > 6 ? AcpiDmTableInfoMadt15a :
+				AcpiDmTableInfoMadt15;
             break;
 
         case ACPI_MADT_TYPE_MULTIPROC_WAKEUP:
