@@ -86,6 +86,8 @@ static const char           *AcpiDmAestSubnames[] =
     "SMMU Error Node",
     "Vendor-defined Error Node",
     "GIC Error Node",
+    "PCIE Error Node",
+    "PROXY Error Node",
     "Unknown Subtable Type"         /* Reserved */
 };
 
@@ -110,6 +112,7 @@ static const char           *AcpiDmAestXfaceNames[] =
 {
     "System Register Interface",
     "Memory Mapped Interface",
+    "Single Record Memory Mapped Interface",
     "Unknown Interface Type"        /* Reserved */
 };
 
@@ -1094,6 +1097,16 @@ AcpiDmDumpTable (
             ByteLength = 18;
             break;
 
+        case ACPI_DMT_BUF32:
+
+            ByteLength = 32;
+            break;
+
+        case ACPI_DMT_BUF112:
+
+            ByteLength = 112;
+            break;
+
         case ACPI_DMT_BUF128:
 
             ByteLength = 128;
@@ -1305,6 +1318,8 @@ AcpiDmDumpTable (
         case ACPI_DMT_BUF12:
         case ACPI_DMT_BUF16:
         case ACPI_DMT_BUF18:
+        case ACPI_DMT_BUF32:
+        case ACPI_DMT_BUF112:
         case ACPI_DMT_BUF128:
             /*
              * Buffer: Size depends on the opcode and was set above.
