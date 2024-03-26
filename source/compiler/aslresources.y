@@ -90,6 +90,7 @@ ResourceMacroTerm
     | DMATerm                       {}
     | DWordIOTerm                   {}
     | DWordMemoryTerm               {}
+    | DWordPccTerm                  {}
     | DWordSpaceTerm                {}
     | EndDependentFnTerm            {}
     | ExtendedIOTerm                {}
@@ -211,6 +212,20 @@ DWordMemoryTerm
     | PARSEOP_DWORDMEMORY
         PARSEOP_OPEN_PAREN
         error PARSEOP_CLOSE_PAREN   {$$ = AslDoError(); yyclearin;}
+    ;
+
+DWordPccTerm
+    : PARSEOP_DWORDPCC
+        PARSEOP_OPEN_PAREN           {$<n>$ = TrCreateLeafOp (PARSEOP_DWORDPCC);}
+        ByteConstExpr
+        OptionalByteConstExpr
+        OptionalStringData
+        OptionalNameString_Last
+        PARSEOP_CLOSE_PAREN                         {$$ = TrLinkOpChildren ($<n>3,4,
+                                                        $4,$5,$6,$7);}
+    | PARSEOP_DWORDPCC
+        PARSEOP_OPEN_PAREN
+        error PARSEOP_CLOSE_PAREN                   {$$ = AslDoError(); yyclearin;}
     ;
 
 DWordSpaceTerm
