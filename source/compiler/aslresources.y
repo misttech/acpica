@@ -117,6 +117,7 @@ ResourceMacroTerm
     | PinGroupFunctionTerm          {}
     | QWordIOTerm                   {}
     | QWordMemoryTerm               {}
+    | QWordPccTerm                  {}
     | QWordSpaceTerm                {}
     | RegisterTerm                  {}
     | SpiSerialBusTerm              {}
@@ -129,6 +130,7 @@ ResourceMacroTerm
     | VendorShortTerm               {}
     | WordBusNumberTerm             {}
     | WordIOTerm                    {}
+    | WordPccTerm                   {}
     | WordSpaceTerm                 {}
     ;
 
@@ -695,6 +697,20 @@ QWordMemoryTerm
         error PARSEOP_CLOSE_PAREN   {$$ = AslDoError(); yyclearin;}
     ;
 
+QWordPccTerm
+    : PARSEOP_QWORDPCC
+        PARSEOP_OPEN_PAREN           {$<n>$ = TrCreateLeafOp (PARSEOP_QWORDPCC);}
+        ByteConstExpr
+        OptionalByteConstExpr
+        OptionalStringData
+        OptionalNameString_Last
+        PARSEOP_CLOSE_PAREN                         {$$ = TrLinkOpChildren ($<n>3,4,
+                                                        $4,$5,$6,$7);}
+    | PARSEOP_QWORDPCC
+        PARSEOP_OPEN_PAREN
+        error PARSEOP_CLOSE_PAREN                   {$$ = AslDoError(); yyclearin;}
+    ;
+
 QWordSpaceTerm
     : PARSEOP_QWORDSPACE
         PARSEOP_OPEN_PAREN          {$<n>$ = TrCreateLeafOp (PARSEOP_QWORDSPACE);}
@@ -921,6 +937,20 @@ WordIOTerm
     | PARSEOP_WORDIO
         PARSEOP_OPEN_PAREN
         error PARSEOP_CLOSE_PAREN   {$$ = AslDoError(); yyclearin;}
+    ;
+
+WordPccTerm
+    : PARSEOP_WORDPCC
+        PARSEOP_OPEN_PAREN           {$<n>$ = TrCreateLeafOp (PARSEOP_WORDPCC);}
+        ByteConstExpr
+        OptionalByteConstExpr
+        OptionalStringData
+        OptionalNameString_Last
+        PARSEOP_CLOSE_PAREN                         {$$ = TrLinkOpChildren ($<n>3,4,
+                                                        $4,$5,$6,$7);}
+    | PARSEOP_WORDPCC
+        PARSEOP_OPEN_PAREN
+        error PARSEOP_CLOSE_PAREN                   {$$ = AslDoError(); yyclearin;}
     ;
 
 WordSpaceTerm

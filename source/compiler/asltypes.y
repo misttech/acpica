@@ -343,6 +343,7 @@ NoEcho('
 %type <n> PinGroupFunctionTerm
 %type <n> QWordIOTerm
 %type <n> QWordMemoryTerm
+%type <n> QWordPccTerm
 %type <n> QWordSpaceTerm
 %type <n> RegisterTerm
 %type <n> SpiSerialBusTerm
@@ -355,6 +356,7 @@ NoEcho('
 %type <n> VendorShortTerm
 %type <n> WordBusNumberTerm
 %type <n> WordIOTerm
+%type <n> WordPccTerm
 %type <n> WordSpaceTerm
 
 /* Local types that help construct the AML, not in ACPI spec */

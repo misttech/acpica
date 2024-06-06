@@ -361,6 +361,7 @@ NamePathTail                [.]{NameSeg}
 "ClockInput"                { count (1); return (PARSEOP_CLOCKINPUT); }
 "QWordIO"                   { count (1); return (PARSEOP_QWORDIO); }
 "QWordMemory"               { count (1); return (PARSEOP_QWORDMEMORY); }
+"QWordPcc"                  { count (1); return (PARSEOP_DWORDPCC); }
 "QWordSpace"                { count (1); return (PARSEOP_QWORDSPACE); }
 "Register"                  { count (1); return (PARSEOP_REGISTER); }
 "SpiSerialBus"              { count (1); return (PARSEOP_SPI_SERIALBUS); }
@@ -373,6 +374,7 @@ NamePathTail                [.]{NameSeg}
 "VendorShort"               { count (1); return (PARSEOP_VENDORSHORT); }
 "WordBusNumber"             { count (1); return (PARSEOP_WORDBUSNUMBER); }
 "WordIO"                    { count (1); return (PARSEOP_WORDIO); }
+"WordPcc"                   { count (1); return (PARSEOP_DWORDPCC); }
 "WordSpace"                 { count (1); return (PARSEOP_WORDSPACE); }
 
 
