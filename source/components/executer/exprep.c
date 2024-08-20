@@ -507,6 +507,10 @@ AcpiExPrepFieldValue (
         if (Info->ConnectionNode)
         {
             SecondDesc = Info->ConnectionNode->Object;
+            if (SecondDesc == NULL)
+            {
+                break;
+            }
             if (!(SecondDesc->Common.Flags & AOPOBJ_DATA_VALID))
             {
                 Status = AcpiDsGetBufferArguments (SecondDesc);
