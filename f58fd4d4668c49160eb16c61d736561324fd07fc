@@ -16,6 +16,24 @@
       "message": "Hold off on landing this for a bit.",
       "revId": "f58fd4d4668c49160eb16c61d736561324fd07fc",
       "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b0d62226_e6839eaa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 30935
+      },
+      "writtenOn": "2025-01-07T19:52:10Z",
+      "side": 1,
+      "message": "Tested this locally and it works for me. Should be good to go once upstream merges https://github.com/acpica/acpica/pull/995.",
+      "parentUuid": "0738d7ac_634e57e8",
+      "revId": "f58fd4d4668c49160eb16c61d736561324fd07fc",
+      "serverId": "ccdefb6c-23ea-33ff-848c-339fc6ca2269"
     }
   ]
 }
