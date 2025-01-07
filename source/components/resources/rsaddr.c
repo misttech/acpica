@@ -323,17 +323,12 @@ AcpiRsGetAddressCommon (
     ACPI_RESOURCE           *Resource,
     AML_RESOURCE            *Aml)
 {
-    /* Avoid undefined behavior: member access within misaligned address */
-
-    AML_RESOURCE_ADDRESS Address;
-    memcpy(&Address, Aml, sizeof(Address));
-
     ACPI_FUNCTION_ENTRY();
 
     /* Validate the Resource Type */
 
-    if ((Address.ResourceType > 2) &&
-        (Address.ResourceType < 0xC0))
+    if ((Aml->Address.ResourceType > 2) &&
+        (Aml->Address.ResourceType < 0xC0))
     {
         return (FALSE);
     }
@@ -360,7 +355,7 @@ AcpiRsGetAddressCommon (
         /* Generic resource type, just grab the TypeSpecific byte */
 
         Resource->Data.Address.Info.TypeSpecific =
-            Address.SpecificFlags;
+            Aml->Address.SpecificFlags;
     }
 
     return (TRUE);
@@ -387,7 +382,6 @@ AcpiRsSetAddressCommon (
     ACPI_RESOURCE           *Resource)
 {
     ACPI_FUNCTION_ENTRY ();
-
 
     /* Set the Resource Type and General Flags */
 
