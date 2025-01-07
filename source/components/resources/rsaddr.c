@@ -326,7 +326,7 @@ AcpiRsGetAddressCommon (
     /* Avoid undefined behavior: member access within misaligned address */
 
     AML_RESOURCE_ADDRESS Address;
-    memcpy(&Address, Aml, sizeof(Address));
+    memcpy(&Address, (char *)Aml, sizeof(Address));
 
     ACPI_FUNCTION_ENTRY();
 
