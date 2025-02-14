@@ -1015,7 +1015,8 @@ enum AcpiDmarType
     ACPI_DMAR_TYPE_HARDWARE_AFFINITY    = 3,
     ACPI_DMAR_TYPE_NAMESPACE            = 4,
     ACPI_DMAR_TYPE_SATC                 = 5,
-    ACPI_DMAR_TYPE_RESERVED             = 6     /* 6 and greater are reserved */
+    ACPI_DMAR_TYPE_SIDP                 = 6,
+    ACPI_DMAR_TYPE_RESERVED             = 7     /* 7 and greater are reserved */
 };
 
 
@@ -1025,7 +1026,8 @@ typedef struct acpi_dmar_device_scope
 {
     UINT8                   EntryType;
     UINT8                   Length;
-    UINT16                  Reserved;
+    UINT8                   Flags;
+    UINT8                   Reserved;
     UINT8                   EnumerationId;
     UINT8                   Bus;
 
@@ -1062,7 +1064,7 @@ typedef struct acpi_dmar_hardware_unit
 {
     ACPI_DMAR_HEADER        Header;
     UINT8                   Flags;
-    UINT8                   Reserved;
+    UINT8                   Size;
     UINT16                  Segment;
     UINT64                  Address;            /* Register Base Address */
 
@@ -1142,9 +1144,20 @@ typedef struct acpi_dmar_satc
     UINT8                   Reserved;
     UINT16                  Segment;
 
-} ACPI_DMAR_SATC
+} ACPI_DMAR_SATC;
 
-;
+
+/* 6: SoC Integrated Device Property Reporting Structure */
+
+typedef struct acpi_dmar_sidp
+{
+    ACPI_DMAR_HEADER        Header;
+    UINT16                  Reserved;
+    UINT16                  Segment;
+
+} ACPI_DMAR_SIDP;
+
+
 /*******************************************************************************
  *
  * DRTM - Dynamic Root of Trust for Measurement table
