@@ -705,6 +705,8 @@ DtCompileMrrm (
     DT_SUBTABLE             *ParentTable;
     DT_FIELD                **PFieldList = (DT_FIELD **) List;
 
+    /* Main table */
+
     Status = DtCompileTable (PFieldList, AcpiDmTableInfoMrrm,
         &Subtable);
     if (ACPI_FAILURE (Status))
@@ -714,6 +716,8 @@ DtCompileMrrm (
 
     ParentTable = DtPeekSubtable ();
     DtInsertSubtable (ParentTable, Subtable);
+
+    /* Subtables (all are same type) */
 
     while (*PFieldList)
     {
