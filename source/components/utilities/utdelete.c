@@ -470,7 +470,7 @@ AcpiUtUpdateRefCount (
             "Obj %p Type %.2X [%s] Refs %.2X [Incremented]\n",
             Object, Object->Common.Type,
             AcpiUtGetObjectTypeName (Object), NewCount));
-        Message = "Incremement";
+        Message = "Increment";
         break;
 
     case REF_DECREMENT:
