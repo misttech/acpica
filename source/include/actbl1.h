@@ -163,7 +163,7 @@ typedef struct acpi_subtable_header_16
     UINT16                  Type;
     UINT16                  Length;
 
-} ACPI_SUBTABLE_HEADER_16;
+} ACPI_SUBTBL_HDR_16;
 
 
 /*******************************************************************************
