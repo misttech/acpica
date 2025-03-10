@@ -52,9 +52,7 @@ static_library("acpica") {
   # Local sources use #include "acpi.h", not #include <acpica/acpi.h>.
   include_dirs = [ "source/include" ]
 
-  configs += [
-    ":disable_warnings",
-  ]
+  configs += [ ":disable_warnings" ]
 
   # This is a public config, since it impacts our header files.
   public_configs = [ ":avoid_linux_init" ]
@@ -240,7 +238,7 @@ static_library("acpica") {
     "source/components/utilities/utxfinit.c",
     "source/components/utilities/utxfmutex.c",
   ]
-  deps = [ "//zircon/system/ulib/acpica:acpica-fuchsia" ]
+  deps = [ "//zircon/system/ulib/acpica:acpica-zircon" ]
   defines = [ "_ALL_SOURCE" ]
   if (acpica_debug_output) {
     defines += [ "ACPI_DEBUG_OUTPUT" ]
